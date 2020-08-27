@@ -4,26 +4,21 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include<sys/utsname.h>
 #include<utmpx.h>
-#include <mntent.h>
+#include <netdb.h>
 
 #include "im_alive.h"
 
-/* from https://stackoverflow.com/questions/9280759/linux-function-to-get-mount-points */
 char *getServer() {
-struct mntent *ent;
-  char *result="-";
-  FILE *aFile = setmntent("/proc/mounts", "r");
-  if (aFile == NULL) {
-    perror("setmntent");
-    return result;
+  struct hostent *ent = gethostbyname("binario1.lab.dit.upm.es");
+  struct in_addr ip;
+  if (!ent) {
+    perror("gethostbyname"); // consulta la IP en /etc/hosts
+    return "-";
   }
-  while (NULL != (ent = getmntent(aFile))) {
-      if (!strcmp(ent->mnt_fsname,MOUNT_DEV)) result=strdup(ent->mnt_fsname);
-  }
-  endmntent(aFile);
-  return result;
+  // obtiene el nombre real del dns
+  struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
+  return ent2->h_name;
 }
 
 /*
