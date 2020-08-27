@@ -2,23 +2,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include<utmpx.h>
+#include <utmpx.h>
 #include <netdb.h>
 
 #include "im_alive.h"
 
 char *getServer() {
-  struct hostent *ent = gethostbyname("binario1.lab.dit.upm.es");
-  struct in_addr ip;
-  if (!ent) {
-    perror("gethostbyname"); // consulta la IP en /etc/hosts
-    return "-";
+  struct hostent *ent;
+  sethostent(0);
+  while ( (ent=gethostent()) ) {
+      if (strcmp(ent->h_name,BINARIO)!=0) continue;
+      endhostent();
+      struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
+      return ent2->h_name;
   }
-  // obtiene el nombre real del dns
-  struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
-  return ent2->h_name;
+  endhostent();
+  return "-";
 }
 
 /*
@@ -43,6 +45,7 @@ char * getUsers() {
         }
         n=getutxent();
     }
+    if (*buff=='\0') return "-";
     // remove first comma and return
     return buff+1;
 }
@@ -50,41 +53,63 @@ char * getUsers() {
 int main(int argc, char *argv[]) {
 
     struct sockaddr_in server_address;
+
+    // set server_address data
+    struct hostent *ent=gethostbyname(SERVER_HOST);
+    if (!ent) {
+        perror("gethostbyname");
+        return 1;
+    }
     memset(&server_address, 0, sizeof(server_address));
+    memcpy((void *)&server_address.sin_addr, ent->h_addr_list[0], ent->h_length);
     server_address.sin_family = AF_INET;
-
-    // creates binary representation of server name
-    // and stores it as sin_addr
-    // http://beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html
-    inet_pton(AF_INET, SERVER_HOST, &server_address.sin_addr);
-
-    // htons: port in network order format
     server_address.sin_port = htons(SERVER_PORT);
 
     // open socket
-    int sock;
-    if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("could not create socket");
+    int sock = socket(PF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        perror("socket");
         return 1;
     }
-    char *binario=getServer();
 
-    // data that will be sent to the server
-    char* data_to_send = calloc(BUFFER_LENGTH,sizeof(char));
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500000; /*  0.5 seg */
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        perror("Error");
+    }
+
+    // extract binario nbd server
+    char *binario=getServer();
+    char *dot=strchr(binario,'.');
+    if (dot) *dot='\0'; // remove FQDN part if any
+
+    // extract client host name
     char hostname[100];
     gethostname(hostname,100);
-    snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%s:%s",hostname,binario,getUsers());
-    // send data
-    int len = sendto(sock, data_to_send, strlen(data_to_send), 0,
-                   (struct sockaddr*)&server_address, sizeof(server_address));
+    dot=strchr(hostname,'.');
+    if (dot) *dot='\0'; // remove FQDN part if any on hostname
 
-    // received echoed data back
-    char response[BUFFER_LENGTH];
-    recvfrom(sock, response, len, 0, NULL, NULL);
+    char* data_to_send = calloc(BUFFER_LENGTH,sizeof(char));
+    if (!data_to_send) {
+        perror("calloc");
+        return 1;
+    }
+    /* pending: get a way to end loop */
 
-    response[len] = '\0';
-    printf("recieved: '%s'\n", response);
-
+    while (true) {
+        // compose string to be sent
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%s:%s",hostname,binario,getUsers());
+        // send data
+        int len = sendto(sock, data_to_send, strlen(data_to_send), 0,
+                         (struct sockaddr*)&server_address, sizeof(server_address));
+        // received echoed data back
+        char response[BUFFER_LENGTH];
+        recvfrom(sock, response, len, 0, NULL, NULL); // timeout at 0.5 segs
+        response[len] = '\0';
+        fprintf(stderr,"received: '%s'\n", response);
+        sleep(DELAY_LOOP);
+    }
     // close the socket
     close(sock);
     return 0;

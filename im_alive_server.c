@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "im_alive.h"
 
@@ -51,12 +52,11 @@ int main(int argc, char *argv[]) {
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,
                            (struct sockaddr *)&client_address,
                            &client_address_len);
-
-        // inet_ntoa prints user friendly representation of the
-        // ip address
+        // evaluate timestamp of received data
+        time_t tstamp=time(NULL);
+        // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
-        printf("received: '%s' from client %s\n", buffer,
-               inet_ntoa(client_address.sin_addr));
+        printf("Time:%lu Received:'%s' from client:'%s'\n", tstamp,buffer, inet_ntoa(client_address.sin_addr));
 
         // send same content back to the client ("echo")
         sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address,
