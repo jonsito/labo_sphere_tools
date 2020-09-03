@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     debug_init(&myConfig);
 
     // set server_address data
-    struct hostent *ent=gethostbyname(SERVER_HOST);
+    struct hostent *ent=gethostbyname(myConfig.server_host);
     if (!ent) {
         debug(DBG_ERROR,"gethostbyname");
         return -1;
@@ -153,10 +153,9 @@ int main(int argc, char *argv[]) {
     if (dot) *dot='\0'; // remove FQDN part if any on hostname
 
     char* data_to_send = calloc(BUFFER_LENGTH,sizeof(char));
-    if (!data_to_send) {
-        debug(DBG_ERROR,"calloc");
-        return 1;
-    }
+    char* response = calloc(BUFFER_LENGTH,sizeof(char));
+    if (!data_to_send) { debug(DBG_ERROR,"calloc(data_to_send"); return 1; }
+    if (!response) { debug(DBG_ERROR,"calloc(response)"); return 1; }
 
     // take care on term signal to end loop
     signal(SIGTERM, sig_handler);
@@ -182,13 +181,17 @@ int main(int argc, char *argv[]) {
         // compose string to be sent
         snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%s:%s",hostname,binario,getUsers());
         // send data
+        debug(DBG_INFO,"sent: '%s'\n", data_to_send);
         int len = sendto(sock, data_to_send, strlen(data_to_send), 0,
                          (struct sockaddr*)&server_address, sizeof(server_address));
         // received echoed data back
-        char response[BUFFER_LENGTH];
-        recvfrom(sock, response, len, 0, NULL, NULL); // timeout at 0.5 segs
-        response[len] = '\0';
-        debug(DBG_INFO,"received: '%s'\n", response);
+        len=recvfrom(sock, response, BUFFER_LENGTH, 0, NULL, NULL); // timeout at 0.5 segs
+        if (len<0) {
+            debug(DBG_ERROR,"recvfrom");
+        } else {
+            response[len] = '\0';
+            debug(DBG_INFO,"received: '%s'\n", response);
+        }
         sleep(DELAY_LOOP);
     }
     // close the socket
