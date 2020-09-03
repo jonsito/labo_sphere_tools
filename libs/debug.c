@@ -44,11 +44,11 @@ int debug_init(configuration *config) {
         debug_level=DBG_ERROR; //
         debug_stderr = stderr; // on no config enable stderr output
     } else {
-        set_debug_level(config->loglevel);
+        set_debug_level(config->log_level);
         debug_stderr = (config->verbose==0)? NULL:stderr;
 
         if(debug_file) fclose(debug_file); // close file before repoen. may fail
-        debug_file=fopen(config->logfile,"w");
+        debug_file=fopen(config->log_file,"w");
         if (!debug_file) { // on error opening logfile, use stderr
             debug_stderr=stderr;
             return -1;

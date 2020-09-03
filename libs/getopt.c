@@ -120,8 +120,8 @@ static const char illoptstring[] = "unknown option -- %s";
 static void
 _vwarnx(const char *fmt,va_list ap)
 {
-    extern char *program_name;
-  (void)fprintf(stderr,"%s: ",program_name);
+  //  extern char *program_name;
+  // (void)fprintf(stderr,"%s: ",program_name);
   if (fmt != NULL)
     (void)vfprintf(stderr,fmt,ap);
   (void)fprintf(stderr,"\n");
