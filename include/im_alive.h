@@ -6,11 +6,12 @@
 #define SERVER_PORT 8877
 #define SERVER_HOST "acceso.lab.dit.upm.es"
 #define BINARIO "server"
+#define EXPIRE_TIME 120 /* 2 minutes */
 
 #define DELAY_LOOP 10
 #define BUFFER_LENGTH 1024
 
-typedef struct {
+typedef struct configuracion_st {
     // server options
     char *server_host;
     int server_port;
@@ -23,5 +24,6 @@ typedef struct {
     int period;     // loop period (seconds)
     int loop;       // flago to mark end of loop
 } configuration;
+
 
 #endif //IM_ALIVE_CLIENT_H
