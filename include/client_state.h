@@ -22,7 +22,9 @@ typedef struct cl_status_st {
 EXTERN cl_status * initData(cl_status *st); /* if null create; else fill */
 EXTERN int freeData(cl_status *st);
 
-EXTERN int clst_putData(cl_status *st,char *data);
+EXTERN int clst_setData(cl_status *st,char *data);
+EXTERN int clst_setDataByName(cl_status *st, char *client,char *data);
+
 EXTERN char *clst_getData(cl_status *st,int format); /* 0:csv 1:json 2:xml */
 EXTERN char *clst_getDataByName(cl_status *st,char *client,int format); /* 0:csv 1:json 2:xml */
 
