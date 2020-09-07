@@ -13,36 +13,26 @@
 #include "debug.h"
 #include "tools.h"
 
-cl_status * initData(cl_status *st){ /* if null create; else fill */
-    if(!st) {
-        st=calloc(NUM_CLIENTS,sizeof(cl_status) );
-    }
-    if (!st) {
-        debug(DBG_ERROR,"calloc(cl_status)");
-        return NULL;
-    }
+static cl_status status[NUM_CLIENTS];
+static char data[NUM_CLIENTS][BUFFER_LENGTH];
+
+int initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
-        cl_status *pt=st+n;
+        cl_status *pt=&status[n];
         pt->timestamp=t;
-        // if buffer is null realloc=malloc; else reset buffer)
-        pt->state=realloc(pt->state,BUFFER_LENGTH*sizeof(char));
         snprintf(pt->state,BUFFER_LENGTH,"l%03d:-:-:-",n);
     }
-    return st;
+    return 0;
 }
 
-int freeData(cl_status *st){
+int freeData(){
     int count=0;
-    if (!st) return 0;
     for (int n=0;n<NUM_CLIENTS;n++) {
-        cl_status *pt=st+n;
+        cl_status *pt=&status[n];
         pt->timestamp=0;
-        if (!pt->state) {
-            if (strstr(pt->state,":???:")>=0) count++;
-            free(pt->state);
-        }
-        pt->state=NULL;
+        if (strstr(pt->state,":-:-:-")>=0) count++;
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:-:-:-",n);
     }
     return count;
 }
@@ -57,13 +47,17 @@ int clst_setData(cl_status *st,char *data){
         free(st->state);
         st->state=strdup(data);
     }
-    return 1;
+    return 0;
 }
 
-int clst_setDataByName(cl_status *st,char *client,char *data) {
-    if (!st) return -1;
-    for (cl_status *pt=st; pt<st+NUM_CLIENTS;pt++) {
-        if (!pt->state) continue;
+int clst_setDataByIndex(int index, char *data) {
+    if ((index<0) || (index>=NUM_CLIENTS)) return -1;
+    return clst_setData(&status[index],data);
+}
+
+int clst_setDataByName(char *client,char *data) {
+    for (int n=0;n<NUM_CLIENTS;n++) {
+        cl_status *pt=&status[n];
         if (strpos(client,pt->state)!=0) continue;
         // entry found. handle it
         return clst_setData(pt,data);
@@ -93,19 +87,17 @@ char *clst_getData(cl_status *st,int format) {
     return result;
 }
 
-char *clst_getDataByName(cl_status *st,char *client,int format){  /* 0:csv 1:json 2:xml */
-    if (!st) return NULL;
-    for (cl_status *pt=st; pt<st+NUM_CLIENTS;pt++) {
-        if (!pt->state) continue;
+char *clst_getDataByName(char *client,int format){  /* 0:csv 1:json 2:xml */
+    for (int n=0;n<NUM_CLIENTS;n++) { // iterate entries
+        cl_status *pt=&status[n];
         if (strpos(client,pt->state)!=0) continue;
         // entry found. handle it
-        return clst_getData(pt,format);
+        return clst_getData(pt,format); // found
     }
-    // arriving here means client not found
-    return NULL;
+    return NULL; // not found
 }
 
-char *clst_getList(cl_status *st, int cl_from,int cl_to, int format) {
+char *clst_getList(int cl_from,int cl_to, int format) {
     char *result=NULL;
     char *str=NULL;
     cl_from=MAX(0,cl_from);
@@ -120,14 +112,12 @@ char *clst_getList(cl_status *st, int cl_from,int cl_to, int format) {
             str="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<statelist>n\t";  break;
     }
     result=str_concat(result,str);
-    for (cl_status *pt=st+cl_from; pt<st+cl_to;pt++) {
-        if (!pt) continue; // should not occurs
-        if (!pt->state) continue;
+    for (int n=cl_from;n<=cl_to;n++) {
+        cl_status *pt=&status[n];
         char *entry=clst_getData(pt,format);
         if (!entry) continue;
         result=str_concat(result,entry);
-        // handle field separator
-        if (pt<st+(cl_to-1)) {
+        if (n<(NUM_CLIENTS-1)) { // do not add field separator on last item
             switch(format%3) {
                 case 0: /* csv: add newline */
                     str="\n";  break;
@@ -156,9 +146,9 @@ char *clst_getList(cl_status *st, int cl_from,int cl_to, int format) {
 int clst_expireData(cl_status *st){
     int count=0;
     time_t current=time(NULL);
-    for (cl_status *pt=st; pt<st+NUM_CLIENTS; pt++) {
+    for (int n=0;n<NUM_CLIENTS;n++) {
+        cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
-        if (!pt->state) continue; // null
         if (strpos (pt->state,":-:-:-")>0) continue; // already expired
         // expired. set state to "unknown". Notice reuse of current buffer
         snprintf(strchr(st->state,':'),BUFFER_LENGTH,":-:-:-");
@@ -167,7 +157,7 @@ int clst_expireData(cl_status *st){
     return count; // number of entries expired
 }
 
-int clst_loadFile(cl_status *st, char *filename, int format){
+int clst_loadFile(char *filename, int format){
     char buffer[BUFFER_LENGTH];
     char host[32];
     int count=0;
@@ -185,15 +175,15 @@ int clst_loadFile(cl_status *st, char *filename, int format){
         memset(host,'\0',32);
         strncpy(host,buffer,31);
         host[strpos(host,":")]='\0';
-        clst_setDataByName(st,host,buffer);
+        clst_setDataByName(host,buffer);
     }
     fclose(f);
     return count; // number of entries loaded
 }
 
-int clst_saveFile(cl_status *st, char *filename, int format){
+int clst_saveFile(char *filename, int format){
     int count=0;
-    char *list=clst_getList(st,0,255,format);
+    char *list=clst_getList(0,255,format);
     FILE *f=fopen(filename,"w");
     if (!f) {
         debug(DBG_ERROR,"clst_saveFile::open() failed");

@@ -19,20 +19,22 @@ typedef struct cl_status_st {
 
 #define NUM_CLIENTS 255
 
-EXTERN cl_status * initData(cl_status *st); /* if null create; else fill */
-EXTERN int freeData(cl_status *st);
+EXTERN int initData(void); /* if null create; else fill */
+EXTERN int freeData(void);
 
 EXTERN int clst_setData(cl_status *st,char *data);
-EXTERN int clst_setDataByName(cl_status *st, char *client,char *data);
+EXTERN int clst_setDataByIndex(int index,char *data);
+EXTERN int clst_setDataByName(char *name,char *data);
 
 EXTERN char *clst_getData(cl_status *st,int format); /* 0:csv 1:json 2:xml */
-EXTERN char *clst_getDataByName(cl_status *st,char *client,int format); /* 0:csv 1:json 2:xml */
+EXTERN char *clst_getDataByIndex(int index,int format); /* 0:csv 1:json 2:xml */
+EXTERN char *clst_getDataByName(char *client,int format); /* 0:csv 1:json 2:xml */
 
-EXTERN char *clst_getList(cl_status *st, int cl_from,int cl_to, int format);
-EXTERN int clst_expireData(cl_status *st);
+EXTERN char *clst_getList(int cl_from,int cl_to, int format);
+EXTERN int clst_expireData();
 
-EXTERN int clst_loadFile(cl_status *st, char *filename, int format);
-EXTERN int clst_saveFile(cl_status *st, char *filename, int format);
+EXTERN int clst_loadFile(char *filename, int format);
+EXTERN int clst_saveFile(char *filename, int format);
 
 #undef EXTERN
 #endif //IMALIVE_CL_STATE_H

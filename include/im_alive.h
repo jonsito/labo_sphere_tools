@@ -9,7 +9,7 @@
 #define EXPIRE_TIME 120 /* 2 minutes */
 
 #define DELAY_LOOP 10
-#define BUFFER_LENGTH 1024
+#define BUFFER_LENGTH 512
 
 typedef struct configuracion_st {
     // server options
