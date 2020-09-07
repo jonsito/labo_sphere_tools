@@ -16,7 +16,7 @@
 static cl_status status[NUM_CLIENTS];
 static char data[NUM_CLIENTS][BUFFER_LENGTH];
 
-int initData(void){
+int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
@@ -26,7 +26,7 @@ int initData(void){
     return 0;
 }
 
-int freeData(){
+int clst_freeData(){
     int count=0;
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
@@ -39,14 +39,7 @@ int freeData(){
 
 int clst_setData(cl_status *st,char *data){
     st->timestamp=time(NULL);
-    if (!data) {
-        if (st->state) free(st->state);
-        st->state=NULL;
-    } else {
-        if (st->state && strcmp(st->state,data)==0) return 0; // no change
-        free(st->state);
-        st->state=strdup(data);
-    }
+    snprintf(st->state,BUFFER_LENGTH,data);
     return 0;
 }
 
@@ -150,8 +143,10 @@ int clst_expireData(cl_status *st){
         cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
         if (strpos (pt->state,":-:-:-")>0) continue; // already expired
-        // expired. set state to "unknown". Notice reuse of current buffer
-        snprintf(strchr(st->state,':'),BUFFER_LENGTH,":-:-:-");
+        debug(DBG_INFO,"Expiring entry '%s'",pt->state);
+        // expired. set state to "unknown". Notice reuse of current buffer.
+        char *c=strchr(pt->state,':');
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":-:-:-");
         count++;
     }
     return count; // number of entries expired
@@ -182,6 +177,7 @@ int clst_loadFile(char *filename, int format){
 }
 
 int clst_saveFile(char *filename, int format){
+    char *formatstr[]={"csv","json","xml"};
     int count=0;
     char *list=clst_getList(0,255,format);
     FILE *f=fopen(filename,"w");
@@ -191,6 +187,7 @@ int clst_saveFile(char *filename, int format){
     }
     count=fputs(list,f); // PENDING: ¿what about string size?
     fclose(f);
+    debug(DBG_TRACE,"Saving status to file:'%s' in format:'%s'",filename,formatstr[format%3]);
     return count; // number of entries saved
 }
 

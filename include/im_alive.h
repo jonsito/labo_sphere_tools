@@ -6,9 +6,8 @@
 #define SERVER_PORT 8877
 #define SERVER_HOST "acceso.lab.dit.upm.es"
 #define BINARIO "server"
-#define EXPIRE_TIME 120 /* 2 minutes */
-
-#define DELAY_LOOP 10
+#define EXPIRE_TIME 90 /* 1.5 minutes expire timeout on server*/
+#define DELAY_LOOP 60 /* 1 minute poll period on client */
 #define BUFFER_LENGTH 512
 
 typedef struct configuracion_st {
@@ -21,7 +20,8 @@ typedef struct configuracion_st {
     // runtime options
     int verbose;    // also send logging to stderr 0:no 1:yes
     int daemon;     // run in background
-    int period;     // loop period (seconds)
+    int period;     // client poll loop period (seconds)
+    int expire;     // server expire loop period (seconds)
     int loop;       // flago to mark end of loop
 } configuration;
 

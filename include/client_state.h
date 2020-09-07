@@ -19,8 +19,8 @@ typedef struct cl_status_st {
 
 #define NUM_CLIENTS 255
 
-EXTERN int initData(void); /* if null create; else fill */
-EXTERN int freeData(void);
+EXTERN int clst_initData(void); /* if null create; else fill */
+EXTERN int clst_freeData(void);
 
 EXTERN int clst_setData(cl_status *st,char *data);
 EXTERN int clst_setDataByIndex(int index,char *data);

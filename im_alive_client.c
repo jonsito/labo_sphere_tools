@@ -15,7 +15,7 @@
 
 configuration myConfig;
 
-void sig_handler(int sig) {
+static void sig_handler(int sig) {
     switch (sig) {
         case SIGTERM: myConfig.loop=0; break;
         case SIGUSR1: myConfig.period= MAX(0,MIN(myConfig.period+30,300));  break;
@@ -73,10 +73,11 @@ static int usage(char *progname) {
     fprintf(stderr,"\t -t period    Set loop period [%d] (secs)\n",DELAY_LOOP);
     fprintf(stderr,"\t -d           Run in backgroud (daemon). Implies no verbose [0]\n");
     fprintf(stderr,"\t -v           Send debug to stderr (verbose). Implies no daemon [0]\n");
+    fprintf(stderr,"\t -?           Show this help\n");
     return 0;
 }
 
-int parse_cmdline(configuration *config,int argc, char *argv[]) {
+static int parse_cmdline(configuration *config,int argc, char *argv[]) {
     int option;
     while ((option = getopt(argc, argv,"h:p:l:f:t:dv")) != -1) {
         switch (option) {
@@ -107,7 +108,9 @@ int main(int argc, char *argv[]) {
     myConfig.verbose=0;    // also send logging to stderr 0:no 1:yes
     myConfig.daemon=0;     // run in background
     myConfig.loop=1;
-    myConfig.period=DELAY_LOOP;    // 1 minute loop
+    myConfig.period=DELAY_LOOP;    // 1 minute loop on client
+    myConfig.expire=EXPIRE_TIME;    // 90 seconds loop on server
+
     if ( parse_cmdline(&myConfig,argc,argv)<0) {
         fprintf(stderr,"error parsing cmd line options");
         usage(argv[0]);
