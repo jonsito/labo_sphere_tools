@@ -171,7 +171,10 @@ int main(int argc, char *argv[]) {
                 debug(DBG_ERROR,"fork");
                 return 1;
             case 0: // child
-            setsid();
+                fclose(stdin);
+                fclose(stdout);
+                fclose(stderr);
+                setsid();
                 break;
             default: // parent
                 debug(DBG_INFO,"fork pid:%d",pid);
