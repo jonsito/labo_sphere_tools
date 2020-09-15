@@ -16,7 +16,9 @@
 #include "getopt.h"
 #include "debug.h"
 #include "tools.h"
+#include "threads.h"
 #include "client_state.h"
+#include "wsserver.h"
 
 configuration myConfig;
 
@@ -31,7 +33,10 @@ static void sig_handler(int sig) {
 
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);
-    fprintf(stderr,"\t -p port      UDP/WSS Server port [%d] \n",SERVER_PORT);
+    fprintf(stderr,"\t -p port      UDP Server port [%d] \n",SERVER_UDPPORT);
+    fprintf(stderr,"\t -w port      WSS Server port [%d] \n",SERVER_WSSPORT);
+    fprintf(stderr,"\t -c cert      SSL certificate file [%s] \n",SSL_CERT_FILE_PATH);
+    fprintf(stderr,"\t -k key       SSL private key file [%s] \n",SSL_PRIVATE_KEY_PATH);
     fprintf(stderr,"\t -l log_level Set debug/logging level 0:none thru 8:all. [3:error]\n");
     fprintf(stderr,"\t -f log_file  Set log file [%s]\n",LOG_FILE);
     fprintf(stderr,"\t -t period    Set expire loop period [%d] (secs)\n",EXPIRE_TIME);
@@ -43,12 +48,15 @@ static int usage(char *progname) {
 
 static int parse_cmdline(configuration *config,int argc, char *argv[]) {
     int option;
-    while ((option = getopt(argc, argv,"p:l:f:t:hdv")) != -1) {
+    while ((option = getopt(argc, argv,"p:w:l:f:t:c:k:hdv")) != -1) {
         switch (option) {
-            case 'p' : config->server_port = (int) strtol(optarg, NULL, 10); break;
+            case 'p' : config->server_udpport = (int) strtol(optarg, NULL, 10); break;
+            case 'w' : config->server_wssport = (int) strtol(optarg, NULL, 10); break;
             case 'l' : config->log_level = (int) strtol(optarg, NULL, 10) % 9; break;
             case 't' : config->expire = MAX(0, MIN((int) strtol(optarg, NULL, 10), 300)); break;
             case 'f' : config->log_file = strdup(optarg); break;
+            case 'c' : config->ssl_cert_file_path = strdup(optarg); break;
+            case 'k' : config->ssl_key_file_path = strdup(optarg); break;
             case 'v' : config->verbose = 1; config->daemon = 0; break;
             case 'd' : config->verbose = 0; config->daemon = 1; break;
             case 'h' :
@@ -62,7 +70,8 @@ static int parse_cmdline(configuration *config,int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 
     // default configuration
-    myConfig.server_port=SERVER_PORT;
+    myConfig.server_udpport=SERVER_UDPPORT;
+    myConfig.server_wssport=SERVER_WSSPORT;
     myConfig.log_file=strdup(LOG_FILE);
     myConfig.log_level=3;
     myConfig.verbose=0;    // also send logging to stderr 0:no 1:yes
@@ -70,6 +79,8 @@ int main(int argc, char *argv[]) {
     myConfig.loop=1;
     myConfig.period=DELAY_LOOP;    // 1 minute loop
     myConfig.expire=EXPIRE_TIME;    // 2 minute loop
+    myConfig.ssl_cert_file_path=SSL_CERT_FILE_PATH;
+    myConfig.ssl_key_file_path=SSL_PRIVATE_KEY_PATH;
 
     if ( parse_cmdline(&myConfig,argc,argv)<0) {
         fprintf(stderr,"error parsing cmd line options");
@@ -85,7 +96,7 @@ int main(int argc, char *argv[]) {
 
     // htons: host to network short: transforms a value in host byte
     // ordering format to a short value in network byte ordering format
-    server_address.sin_port = htons(SERVER_PORT);
+    server_address.sin_port = htons(SERVER_UDPPORT);
 
     // htons: host to network long: same as htons but to long
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -137,16 +148,22 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // run indefinitely
+    // fireup websocket thread
+    sc_thread_slot *wss_slot=sc_thread_create("wssserver",&myConfig,init_wsService);
+    if (!wss_slot) {
+        debug(DBG_ERROR,"Cannot create WSS server thread");
+        exit(1);
+    }
+    // fireup expire thread
+
+    // run until sigterm received
     time_t last_expire=time(NULL);
     while (myConfig.loop) {
         char buffer[500];
         char name[32];
 
         // read content into buffer from an incoming client
-        int len = recvfrom(sock, buffer, sizeof(buffer), 0,
-                           (struct sockaddr *)&client_address,
-                           &client_address_len);
+        int len = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_address,&client_address_len);
         // evaluate timestamp of received data
         time_t tstamp=time(NULL);
         if (len<0) {

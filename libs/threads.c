@@ -5,23 +5,27 @@
 #define _GNU_SOURCE
 #include <pthread.h>
 #include <string.h>
+#include <stdlib.h>
 #include "threads.h"
 #include "debug.h"
 
-int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
+sc_thread_slot *sc_thread_create(char *name,configuration *config,void (*handler)(configuration *config)) {
+    sc_thread_slot *slot=calloc(1,sizeof(sc_thread_slot));
+    if (!slot) {
+        debug(DBG_ERROR,"Cannot create thread structure");
+        return NULL;
+    }
+    // need to make sure that thread name is no longer than 16 chars... but mingw has no strndup()
     char buff[32];
     memset(buff,0,32);
-    sc_thread_slot *slot=&sc_threads[index];
-    slot->id=index;
     slot->tname=strdup(name);
     if (strlen(name)>16)slot->tname[15]='\0'; // stupid mingw has no strndup(name,len)
     slot->config=config;
     slot->handler=handler;
-    int res=pthread_create( &slot->thread, NULL, slot->handler, &slot->id);
+    int res=pthread_create( &slot->thread, NULL, (void * (*)(void *)) &handler, &slot->id);
     if (res<0) {
         debug(DBG_ERROR,"Cannot create and start posix thread");
-        slot->id=-1;
-        return -1;
+        return NULL;
     }
 #ifndef __APPLE__
     res=pthread_setname_np(slot->thread,slot->tname);

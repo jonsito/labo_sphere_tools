@@ -10,5 +10,5 @@ file(GLOB LIBSRCS "libs/*.c")
 add_executable(ImAlive_client ${LIBSRCS} ${INCLUDES} im_alive_client.c )
 target_link_libraries(ImAlive_client pthread)
 
-add_executable(ImAlive_server ${LIBSRCS} ${INCLUDES} client_state.c im_alive_server.c )
+add_executable(ImAlive_server ${LIBSRCS} ${INCLUDES} client_state.c im_alive_server.c wsserver.c)
 target_link_libraries(ImAlive_server pthread websockets)

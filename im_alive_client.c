@@ -67,7 +67,8 @@ char * getUsers() {
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);
     fprintf(stderr,"\t -h host      Server host [%s]\n",SERVER_HOST);
-    fprintf(stderr,"\t -p port      UDP Server port [%d] \n",SERVER_PORT);
+    fprintf(stderr,"\t -p port      UDP Server port [%d] \n",SERVER_UDPPORT);
+    fprintf(stderr,"\t -w port      WSS Server port [%d] \n",SERVER_WSSPORT);
     fprintf(stderr,"\t -l log_level Set debug/logging level 0:none thru 8:all. [3:error]\n");
     fprintf(stderr,"\t -f log_file  Set log file [%s]\n",LOG_FILE);
     fprintf(stderr,"\t -t period    Set loop period [%d] (secs)\n",DELAY_LOOP);
@@ -79,10 +80,11 @@ static int usage(char *progname) {
 
 static int parse_cmdline(configuration *config,int argc, char *argv[]) {
     int option;
-    while ((option = getopt(argc, argv,"h:p:l:f:t:dv")) != -1) {
+    while ((option = getopt(argc, argv,"h:w:p:l:f:t:dv")) != -1) {
         switch (option) {
             case 'h' : config->server_host = strdup(optarg);     break;
-            case 'p' : config->server_port = (int)strtol(optarg,NULL,10);break;
+            case 'p' : config->server_udpport = (int)strtol(optarg,NULL,10);break;
+            case 'w' : config->server_wssport = (int)strtol(optarg,NULL,10);break;
             case 'l' : config->log_level = (int)strtol(optarg,NULL,10)%9;  break;
             case 't' : config->period = MAX(0,MIN((int)strtol(optarg,NULL,10),300));  break;
             case 'f' : config->log_file = strdup(optarg);  break;
@@ -102,7 +104,8 @@ int main(int argc, char *argv[]) {
 
     // default configuration
     myConfig.server_host=strdup(SERVER_HOST);
-    myConfig.server_port=SERVER_PORT;
+    myConfig.server_udpport=SERVER_UDPPORT;
+    myConfig.server_wssport=SERVER_WSSPORT;
     myConfig.log_file=strdup(LOG_FILE);
     myConfig.log_level=3;
     myConfig.verbose=0;    // also send logging to stderr 0:no 1:yes
@@ -127,7 +130,7 @@ int main(int argc, char *argv[]) {
     memset(&server_address, 0, sizeof(server_address));
     memcpy((void *)&server_address.sin_addr, ent->h_addr_list[0], ent->h_length);
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(SERVER_PORT);
+    server_address.sin_port = htons(SERVER_UDPPORT);
 
     // open socket
     int sock = socket(PF_INET, SOCK_DGRAM, 0);
