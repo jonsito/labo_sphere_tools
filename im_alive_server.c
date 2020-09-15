@@ -128,7 +128,6 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in client_address;
     int client_address_len = 0;
 
-    clst_initData();
     // take care on term signal to end loop
     signal(SIGTERM, sig_handler);
 
@@ -148,14 +147,20 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // initialize status table data
+    clst_initData();
+    // fireup expire thread
+    sc_thread_slot *exp_slot=sc_thread_create("expirer",&myConfig,init_expireThread);
+    if (!exp_slot) {
+        debug(DBG_ERROR,"Cannot create alive expire thread");
+        exit(1);
+    }
     // fireup websocket thread
     sc_thread_slot *wss_slot=sc_thread_create("wssserver",&myConfig,init_wsService);
     if (!wss_slot) {
         debug(DBG_ERROR,"Cannot create WSS server thread");
         exit(1);
     }
-    // fireup expire thread
-
     // run until sigterm received
     time_t last_expire=time(NULL);
     while (myConfig.loop) {
@@ -180,12 +185,6 @@ int main(int argc, char *argv[]) {
             clst_setDataByName(name,buffer);
             // send same content back to the client ("echo")
             sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address, sizeof(client_address));
-        }
-        // every DELAY_LOOP perform expire
-        if ( (tstamp-last_expire) > EXPIRE_TIME ) {
-            last_expire=tstamp;
-            debug(DBG_TRACE,"Enter expiration routine");
-            clst_expireData();
         }
     }
 

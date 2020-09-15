@@ -2,6 +2,7 @@
 // Created by jantonio on 4/9/20.
 //
 #include <time.h>
+#include "im_alive.h"
 
 #ifndef IMALIVE_CL_STATE_H
 #define IMALIVE_CL_STATE_H
@@ -35,6 +36,7 @@ EXTERN int clst_expireData();
 
 EXTERN int clst_loadFile(char *filename, int format);
 EXTERN int clst_saveFile(char *filename, int format);
+EXTERN void init_expireThread(configuration *config);
 
 #undef EXTERN
 #endif //IMALIVE_CL_STATE_H

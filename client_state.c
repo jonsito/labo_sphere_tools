@@ -191,4 +191,11 @@ int clst_saveFile(char *filename, int format){
     return count; // number of entries saved
 }
 
+void init_expireThread( configuration * config) {
+    // enter loop
+    while( config->loop )	{
+        clst_expireData(status);
+    }
+}
+
 #undef IMALIVE_CL_STATE_C
