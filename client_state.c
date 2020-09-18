@@ -42,11 +42,11 @@ int clst_freeData(){
 int clst_setData(cl_status *st,char *fmt){
     st->timestamp=time(NULL);
     if (strcmp(fmt,st->state)!=0) {
-        debug(DBG_TRACE,"new state '%s' => '%s'",fmt);
+        debug(DBG_TRACE,"new state '%s' => '%s'",st->state,fmt);
         snprintf(st->state,BUFFER_LENGTH,"%s",fmt);
         return 1;
     }
-    debug(DBG_TRACE,"unchanged '%s'",fmt);
+    debug(DBG_TRACE,"unchanged '%s'",st->state);
     return 0;
 }
 
