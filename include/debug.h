@@ -36,8 +36,8 @@
 #define LOG_FILE "/var/log/im_alive.log"
 
 /*
-#define DBG(f, ...) debug_print(1, __FILE__, __LINE__, f, ## __VA_ARGS__)
-*/
+#define debug(l,a, ...) debug_print(l, __FILE__, a, ##__VA_ARGS__ )
+ */
 #define debug(l,a, ...) debug_print(l, __FILE__, __LINE__, a, ##__VA_ARGS__ )
 
 #ifndef PROJECT_DEBUG_C_

@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
     myConfig->expire=EXPIRE_TIME;    // 2 minute loop
     myConfig->ssl_cert_file_path=SSL_CERT_FILE_PATH;
     myConfig->ssl_key_file_path=SSL_PRIVATE_KEY_PATH;
+    set_debug_level(myConfig->log_level);
 
     if ( parse_cmdline(myConfig,argc,argv)<0) {
         fprintf(stderr,"error parsing cmd line options");
@@ -178,7 +179,7 @@ int main(int argc, char *argv[]) {
         } else {
             // inet_ntoa prints user friendly representation of the ip address
             buffer[len] = '\0';
-            printf("Time:%lu Received:'%s' from client:'%s'\n", tstamp,buffer, inet_ntoa(client_address.sin_addr));
+            debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'\n", tstamp,buffer, inet_ntoa(client_address.sin_addr));
             // extract host name
             snprintf(name,32,"%s",buffer);
             name[31]='\0';
