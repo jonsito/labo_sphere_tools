@@ -20,13 +20,13 @@
 #include "client_state.h"
 #include "wsserver.h"
 
-configuration myConfig;
+configuration *myConfig;
 
 static void sig_handler(int sig) {
     switch (sig) {
-        case SIGTERM: myConfig.loop=0; break;
-        case SIGUSR1: myConfig.period= MAX(0,MIN(myConfig.period+30,300));  break;
-        case SIGUSR2: myConfig.period= MAX(0,MIN(myConfig.period-30,300));  break;
+        case SIGTERM: myConfig->loop=0; break;
+        case SIGUSR1: myConfig->period= MAX(0,MIN(myConfig->period+30,300));  break;
+        case SIGUSR2: myConfig->period= MAX(0,MIN(myConfig->period-30,300));  break;
         default: debug(DBG_ERROR,"unexpected signal '%d' received\n",sig); break;
     }
 }
@@ -68,26 +68,28 @@ static int parse_cmdline(configuration *config,int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-
+    char *expire_th_name="expirer";
+    char *websock_th_name="websockets";
+    myConfig=calloc(1,sizeof(configuration));
     // default configuration
-    myConfig.server_udpport=SERVER_UDPPORT;
-    myConfig.server_wssport=SERVER_WSSPORT;
-    myConfig.log_file=strdup(LOG_FILE);
-    myConfig.log_level=3;
-    myConfig.verbose=0;    // also send logging to stderr 0:no 1:yes
-    myConfig.daemon=0;     // run in background
-    myConfig.loop=1;
-    myConfig.period=DELAY_LOOP;    // 1 minute loop
-    myConfig.expire=EXPIRE_TIME;    // 2 minute loop
-    myConfig.ssl_cert_file_path=SSL_CERT_FILE_PATH;
-    myConfig.ssl_key_file_path=SSL_PRIVATE_KEY_PATH;
+    myConfig->server_udpport=SERVER_UDPPORT;
+    myConfig->server_wssport=SERVER_WSSPORT;
+    myConfig->log_file=strdup(LOG_FILE);
+    myConfig->log_level=3;
+    myConfig->verbose=0;    // also send logging to stderr 0:no 1:yes
+    myConfig->daemon=0;     // run in background
+    myConfig->loop=1;
+    myConfig->period=DELAY_LOOP;    // 1 minute loop
+    myConfig->expire=EXPIRE_TIME;    // 2 minute loop
+    myConfig->ssl_cert_file_path=SSL_CERT_FILE_PATH;
+    myConfig->ssl_key_file_path=SSL_PRIVATE_KEY_PATH;
 
-    if ( parse_cmdline(&myConfig,argc,argv)<0) {
+    if ( parse_cmdline(myConfig,argc,argv)<0) {
         fprintf(stderr,"error parsing cmd line options");
         usage(argv[0]);
         return 1;
     }
-    debug_init(&myConfig);
+    debug_init(myConfig);
 
     // socket address used for the server
     struct sockaddr_in server_address;
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, sig_handler);
 
     // become daemon if requested to do so
-    if (myConfig.daemon) {
+    if (myConfig->daemon) {
         pid_t pid=fork();
         switch (pid) {
             case -1: // error
@@ -150,20 +152,20 @@ int main(int argc, char *argv[]) {
     // initialize status table data
     clst_initData();
     // fireup expire thread
-    sc_thread_slot *exp_slot=sc_thread_create("expirer",&myConfig,init_expireThread);
+    sc_thread_slot *exp_slot=sc_thread_create(expire_th_name,myConfig,init_expireThread);
     if (!exp_slot) {
         debug(DBG_ERROR,"Cannot create alive expire thread");
         exit(1);
     }
     // fireup websocket thread
-    sc_thread_slot *wss_slot=sc_thread_create("wssserver",&myConfig,init_wsService);
+    sc_thread_slot *wss_slot=sc_thread_create(websock_th_name,myConfig,init_wsService);
     if (!wss_slot) {
         debug(DBG_ERROR,"Cannot create WSS server thread");
         exit(1);
     }
     // run until sigterm received
     time_t last_expire=time(NULL);
-    while (myConfig.loop) {
+    while (myConfig->loop) {
         char buffer[500];
         char name[32];
 
