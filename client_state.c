@@ -51,7 +51,10 @@ int clst_setData(cl_status *st,char *fmt){
 }
 
 int clst_setDataByIndex(int index, char *fmt) {
-    if ((index<0) || (index>=NUM_CLIENTS)) return -1;
+    if ((index<0) || (index>=NUM_CLIENTS)) {
+        debug(DBG_ERROR,"index %d out of range",index);
+        return -1;
+    }
     return clst_setData(&status[index],fmt);
 }
 
@@ -63,6 +66,7 @@ int clst_setDataByName(char *client,char *fmt) {
         return clst_setData(pt,fmt);
     }
     // arriving here means client not found
+    debug(DBG_ERROR,"client '%s' not found",client);
     return -1;
 }
 
