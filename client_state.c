@@ -14,12 +14,13 @@
 #include "tools.h"
 
 static cl_status status[NUM_CLIENTS];
-static char data[NUM_CLIENTS][BUFFER_LENGTH];
+static char cl_data[NUM_CLIENTS][BUFFER_LENGTH];
 
 int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
+        pt->state=cl_data[n];
         pt->timestamp=t;
         snprintf(pt->state,BUFFER_LENGTH,"l%03d:-:-:-",n);
     }
