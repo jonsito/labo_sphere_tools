@@ -198,9 +198,10 @@ int clst_saveFile(char *filename, int format){
     return count; // number of entries saved
 }
 
-void init_expireThread( configuration * config) {
+void init_expireThread() {
+    extern configuration *myConfig;
     // enter loop
-    while( config->loop )	{
+    while( myConfig->loop )	{
         clst_expireData(status);
     }
 }

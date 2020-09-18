@@ -36,7 +36,7 @@ EXTERN int clst_expireData();
 
 EXTERN int clst_loadFile(char *filename, int format);
 EXTERN int clst_saveFile(char *filename, int format);
-EXTERN void init_expireThread(configuration *config);
+EXTERN void init_expireThread(void);
 
 #undef EXTERN
 #endif //IMALIVE_CL_STATE_H

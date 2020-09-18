@@ -9,7 +9,7 @@
 #include "threads.h"
 #include "debug.h"
 
-sc_thread_slot *sc_thread_create(char *name,configuration *config,void (*handler)(configuration *config)) {
+sc_thread_slot *sc_thread_create(char *name,configuration *config,void (*handler)(void)) {
     sc_thread_slot *slot=calloc(1,sizeof(sc_thread_slot));
     if (!slot) {
         debug(DBG_ERROR,"Cannot create thread structure");

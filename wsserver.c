@@ -52,7 +52,8 @@ static struct lws_protocols protocols[] =  {
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
 
-void init_wsService( configuration *myConfig ) {
+void init_wsService(void ) {
+    extern configuration *myConfig;
 	struct lws_context_creation_info info;
 	memset( &info, 0, sizeof(info) );
 

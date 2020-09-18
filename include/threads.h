@@ -13,7 +13,7 @@ typedef struct {
     char * tname; // thread name
     configuration *config; // pointer to configuration options
     pthread_t thread; // where to store pthread_create() info
-    void (*handler)(configuration *config); // entry point
+    void (*handler)(void); // entry point
 } sc_thread_slot;
 
 #ifdef IMALIVE_THREADS_C
@@ -22,7 +22,7 @@ typedef struct {
 #define EXTERN
 #endif
 
-EXTERN sc_thread_slot *sc_thread_create(char *name, configuration *config,void (*handler)(configuration *config));
+EXTERN sc_thread_slot *sc_thread_create(char *name, configuration *config,void (*handler)(void));
 
 #undef EXTERN
 

@@ -24,7 +24,7 @@ enum protocols {
     PROTOCOL_COUNT
 };
 
-EXTERN void init_wsService( configuration *myConfig );
+EXTERN void init_wsService( void );
 
 #undef EXTERN
 #endif //WSSERVER_H
