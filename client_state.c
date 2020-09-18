@@ -37,23 +37,23 @@ int clst_freeData(){
     return count;
 }
 
-int clst_setData(cl_status *st,char *data){
+int clst_setData(cl_status *st,char *fmt){
     st->timestamp=time(NULL);
-    snprintf(st->state,BUFFER_LENGTH,data);
+    snprintf(st->state,BUFFER_LENGTH,fmt);
     return 0;
 }
 
-int clst_setDataByIndex(int index, char *data) {
+int clst_setDataByIndex(int index, char *fmt) {
     if ((index<0) || (index>=NUM_CLIENTS)) return -1;
-    return clst_setData(&status[index],data);
+    return clst_setData(&status[index],fmt);
 }
 
-int clst_setDataByName(char *client,char *data) {
+int clst_setDataByName(char *client,char *fmt) {
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         if (strpos(client,pt->state)!=0) continue;
         // entry found. handle it
-        return clst_setData(pt,data);
+        return clst_setData(pt,fmt);
     }
     // arriving here means client not found
     return -1;
