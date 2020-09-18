@@ -22,7 +22,7 @@ sc_thread_slot *sc_thread_create(char *name,configuration *config,void (*handler
     if (strlen(name)>16)slot->tname[15]='\0'; // stupid mingw has no strndup(name,len)
     slot->config=config;
     slot->handler=handler;
-    int res=pthread_create( &slot->thread, NULL, (void * (*)(void *)) &handler, &slot->id);
+    int res=pthread_create( &slot->thread, NULL, (void * (*)(void *)) handler, &slot->id);
     if (res<0) {
         debug(DBG_ERROR,"Cannot create and start posix thread");
         return NULL;
@@ -35,5 +35,5 @@ sc_thread_slot *sc_thread_create(char *name,configuration *config,void (*handler
 #endif
     res=pthread_getname_np(slot->thread,buff,32);
     debug(DBG_TRACE,"getname returns %d thread name:%s",res,buff);
-    return 0;
+    return slot;
 }
