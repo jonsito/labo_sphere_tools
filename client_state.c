@@ -61,7 +61,7 @@ int clst_setDataByIndex(int index, char *fmt) {
 int clst_setDataByName(char *client,char *fmt) {
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        if (strpos(client,pt->state)!=0) continue;
+        if (strpos(pt->state,client)!=0) continue;
         // entry found. handle it
         return clst_setData(pt,fmt);
     }
@@ -94,7 +94,7 @@ char *clst_getData(cl_status *st,int format) {
 char *clst_getDataByName(char *client,int format){  /* 0:csv 1:json 2:xml */
     for (int n=0;n<NUM_CLIENTS;n++) { // iterate entries
         cl_status *pt=&status[n];
-        if (strpos(client,pt->state)!=0) continue;
+        if (strpos(pt->state,client)!=0) continue;
         // entry found. handle it
         return clst_getData(pt,format); // found
     }
