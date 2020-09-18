@@ -43,7 +43,7 @@ int clst_setData(cl_status *st,char *fmt){
     st->timestamp=time(NULL);
     if (strcmp(fmt,st->state)!=0) {
         debug(DBG_TRACE,"new state '%s' => '%s'",fmt);
-        snprintf(st->state,BUFFER_LENGTH,st->state,fmt);
+        snprintf(st->state,BUFFER_LENGTH,"%s",fmt);
         return 1;
     }
     debug(DBG_TRACE,"unchanged '%s'",fmt);
