@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/param.h>
@@ -9,6 +10,7 @@
 #include <utmpx.h>
 #include <netdb.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "im_alive.h"
 #include "debug.h"
@@ -62,6 +64,33 @@ char * getUsers() {
     if (*buff=='\0') return "-";
     // remove first comma and return
     return buff+1;
+}
+
+// call to uptime. return number of seconds from client start
+long getUptime() {
+    size_t num_bytes_read;
+    int fd;
+    char read_buf[128];
+    double uptime_secs;
+    double idle_secs;
+
+    fd = open("/proc/uptime", O_RDONLY, S_IRUSR | S_IRGRP | S_IROTH);
+
+    if(fd <0) {
+        debug(DBG_ERROR,"cannot open /proc/uptime");
+        return -1;
+    }
+    num_bytes_read=read(fd, read_buf, 128);
+    if (num_bytes_read<0) {
+        debug(DBG_ERROR,"read() error in /proc/uptime");
+        close(fd);
+        return -1;
+    }
+    if(sscanf(read_buf, "%lf %lf", &(uptime_secs), &(idle_secs)) == 2) {
+        debug(DBG_ERROR,"Erron on sscanf, %s, line no %d\n", strerror(errno), __LINE__);
+        close(fd);
+    }
+    return (long) uptime_secs;
 }
 
 static int usage(char *progname) {
@@ -188,13 +217,12 @@ int main(int argc, char *argv[]) {
     // enter loop. exit on kill or SIGTERM
     while (myConfig.loop) {
         // compose string to be sent
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%s:%s",hostname,binario,getUsers());
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
-        int len = sendto(sock, data_to_send, strlen(data_to_send), 0,
-                         (struct sockaddr*)&server_address, sizeof(server_address));
+        sendto(sock, data_to_send, strlen(data_to_send), 0,(struct sockaddr*)&server_address, sizeof(server_address));
         // received echoed data back
-        len=recvfrom(sock, response, BUFFER_LENGTH, 0, NULL, NULL); // timeout at 0.5 segs
+        int len=recvfrom(sock, response, BUFFER_LENGTH, 0, NULL, NULL); // timeout at 0.5 segs
         if (len<0) {
             debug(DBG_ERROR,"recvfrom");
         } else {

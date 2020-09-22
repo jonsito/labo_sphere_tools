@@ -22,7 +22,7 @@ int clst_initData(void){
         cl_status *pt=&status[n];
         pt->state=cl_data[n];
         pt->timestamp=t;
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:-:-:-",n);
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:-1:-:-",n);
     }
     return 0;
 }
@@ -32,8 +32,9 @@ int clst_freeData(){
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         pt->timestamp=0;
-        if (strstr(pt->state,":-:-:-")>=0) count++;
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:-:-:-",n);
+        if (strstr(pt->state,":-1:-:-")>=0) count++; // not yet initialized
+        if (strstr(pt->state,":0:-:-")>=0) count++; // already clean
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-",n);
     }
     return count;
 }
@@ -153,11 +154,11 @@ int clst_expireData(cl_status *st){
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
-        if (strpos (pt->state,":-:-:-")>0) continue; // already expired
+        if (strpos (pt->state,":0:-:-")>0) continue; // already expired
         debug(DBG_INFO,"Expiring entry '%s'",pt->state);
         // expired. set state to "unknown". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":-:-:-");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
         count++;
     }
     return count; // number of entries expired
