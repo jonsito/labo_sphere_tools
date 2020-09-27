@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
         char name[32];
 
         // read content into buffer from an incoming client
-        int len = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_address,&client_address_len);
+        size_t len = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_address,&client_address_len);
         // evaluate timestamp of received data
         time_t tstamp=time(NULL);
         if (len<0) {
@@ -185,7 +185,9 @@ int main(int argc, char *argv[]) {
             name[31]='\0';
             if (strpos(name,":")>0) name[strpos(name,":")]='\0';
             // insert into state table
-            clst_setDataByName(name,buffer);
+            int res=clst_setDataByName(name,buffer);
+            // if need to broadcast to websocket do it
+            if (res>0) ws_sendData(buffer,&len);
             // send same content back to the client ("echo")
             sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address, sizeof(client_address));
         }

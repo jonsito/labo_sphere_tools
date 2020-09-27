@@ -7,19 +7,18 @@
 
 #include<stdio.h>
 
-typedef struct qitem_st {
-    time_t expire;
-    int index;
-    char *msg;
-    struct qitem_st *next;
-} qitem_t;
+
+typedef struct node_st {
+    void *data;
+    size_t data_len;
+    struct node_st *next;
+} node_t;
 
 typedef struct queue_st {
-    char *name;
-    int last_index;
-    qitem_t *first_out; // first element to fetch on get()
-    qitem_t *last_out; // last item inserted in queue with put()
-} queue_t;
+    size_t size;
+    node_t *front; // first element to fetch on get()
+    node_t *rear; // last item inserted in queue with put()
+} queue;
 
 #ifndef IMALIVE_TOOLS_C
 #define EXTERN extern
@@ -42,13 +41,12 @@ EXTERN long long current_timestamp(); // timestamp in miliseconds
 EXTERN int file_exists(char *fname);
 
 /* fifo queue management */
-EXTERN queue_t *queue_create(char *name);
-EXTERN void queue_destroy(queue_t *queue);
-EXTERN qitem_t *queue_put(queue_t*queue, char * msg);
-EXTERN char *queue_get(queue_t *queue);
-EXTERN char *queue_pick(queue_t *queue,int id);
-EXTERN size_t queue_size(queue_t *queue);
-EXTERN void queue_expire(queue_t *queue);
+EXTERN queue *queue_create();
+EXTERN void queue_destroy(queue *queue);
+EXTERN void *queue_put(queue *queue, void *data,size_t *len);
+EXTERN void *queue_get(queue *queue,size_t *len);
+EXTERN void *queue_pick(queue *queue,size_t *len);
+EXTERN size_t queue_size(queue *queue);
 
 #undef EXTERN
 #endif // IMALIVE_TOOLS_H

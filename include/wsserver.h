@@ -21,10 +21,11 @@ struct payload {
 enum protocols {
     PROTOCOL_HTTP = 0,
     PROTOCOL_IMALIVE,
-    PROTOCOL_COUNT
+    PROTOCOL_COUNT // not used, just to know number of available protocols
 };
 
 EXTERN void init_wsService( void );
+EXTERN int ws_sendData(char *data, size_t *len);
 
 #undef EXTERN
 #endif //WSSERVER_H

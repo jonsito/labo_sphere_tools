@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
         // received echoed data back
         int len=recvfrom(sock, response, BUFFER_LENGTH, 0, NULL, NULL); // timeout at 0.5 segs
         if (len<0) {
-            debug(DBG_ERROR,"recvfrom");
+            debug(DBG_ERROR,"recvfrom",strerror(errno));
         } else {
             response[len] = '\0';
             debug(DBG_INFO,"received: '%s'\n", response);

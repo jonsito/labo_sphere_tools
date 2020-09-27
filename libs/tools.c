@@ -152,101 +152,79 @@ int file_exists(char *fname) {
 }
 
 /*************************************** fifo queue management */
-queue_t *queue_create(char *name) {
-    queue_t *q=calloc(1,sizeof(queue_t));
+queue *queue_create() {
+    queue *q=calloc(1,sizeof(queue));
     if (!q) return NULL;
-    q->name=strdup(name);
+    q->front=NULL; // next element to get out
+    q->rear=NULL; // last inserted element
     return q;
 }
-void queue_destroy(queue_t *q) {
+
+void queue_destroy(queue *q) {
     if (!q) return;
-    qitem_t *pt=q->first_out;
-    while(pt) {
-        qitem_t *cur=pt;
-        free(pt->msg);
-        pt=pt->next;
-        free(cur);
+    for (node_t *node=q->front; node->next; node=node->next) {
+        if (node->data) free(node->data);
     }
-    free(q->name); // strdup()'d
     free(q);
 }
 
-qitem_t *queue_put(queue_t *q,char * msg) {
+void *queue_put(queue *q,void * data,size_t *size) {
     if (!q) return NULL;
-    if (!msg) return NULL;
-    // fprintf(stderr,"(%s) queue_put\n",q->name);
-    qitem_t *item=calloc(1,sizeof(qitem_t));
-    if (!item) return NULL;
-    char *m=strdup(msg); // duplicate string to keep queue without external manipulation
+    if (!data) return NULL;
+    // creamos entrada en la cola y copiamos los datos en dicha entrada
+    node_t *node=calloc(1,sizeof(node_t));
+    if (!node) return NULL;
+    void *m=calloc(1,*size);
     if (!m) {
-        free(item);
+        free(node);
         return NULL;
     }
-    item->index=q->last_index++;
-    item->msg=m;
-    item->expire=15000+current_timestamp(); // mark expire in 15 seconds
-    item->next=q->last_out;
-    q->last_out=item;
-    if (!item->next) q->first_out=item; // on empty queue set first to out on new item
-    // fprintf(stderr,"(%s) queue put index:%d msg:'%s'\n",q->name,item->index,item->msg);
-    return item;
+    memcpy(m,data,*size);
+    node->data=m;
+    node->data_len=*size;
+    node->next=NULL;
+    // insert element before last item in queue
+    if (q->front==NULL) q->front=node; // empty queue
+    node->next=q->rear;
+    q->rear=node;
+    q->size++;
+    return node->data;
 }
 
-char *queue_get(queue_t *q) {
-    if (!q) return NULL; // no queue
-    if (!q->first_out) return NULL; // empty queue
-    // fprintf(stderr,"(%s) queue_get\n",q->name);
-    qitem_t *item=q->first_out;
-    char *msg=q->first_out->msg;
-    q->first_out=q->first_out->next;
-    if (!q->first_out) q->last_out=NULL; // on no more elements in queue clean last_out pointer
-    // fprintf(stderr,"(%s)queue get index:%d msg:'%s'\n",q->name,item->index,item->msg);
-    free(item);
-    return msg;
+void *queue_get(queue *q,size_t *size) {
+    if (!q) { *size=0; return NULL; } // no queue
+    if (!q->front) { *size=0; return NULL; } // empty queue
+    // retrieve front node
+    node_t *node=q->front;
+    char *msg=node->data;
+    *size=node->data_len;
+    q->front=node->next;
+    if (!q->front) q->rear=NULL; // queue becomes empty
+    q->size--;
+    // extract stored data, fix len and free node
+    void *data=node->data;
+    *size=node->data_len;
+    free(node);
+    return data;
 }
 
 // pick requested element from queue. DO NOT remove
-// when id=-1 get *first item
-// else search for first id greater or equal than requested
-char *queue_pick(queue_t *q,int id) {
+void *queue_pick(queue *q,size_t *size) {
     if (!q) return NULL; // null
-    if (!q->first_out) return NULL; // empty
-    // if id < 0 fetch first item to get out
-    if ( id<0 ) {
-        return strdup(q->first_out->msg);
-    }
-    // else iterate
-    qitem_t *nearest= q->last_out;
-    if (nearest->index<id) return NULL; // first element is already older than requested
-    for (qitem_t *pt=q->last_out; pt ; pt=pt->next) {
-        if (pt->index >= id) nearest=pt;
-    }
-    // fprintf(stderr,"queue pick(%d) returns index:%d msg:'%s'\n",id,nearest->index,nearest->msg);
-    return strdup(nearest->msg);
+    if (!q->front) return NULL; // empty
+    // extract data from queue front without removeing
+    char *data=calloc(1,q->front->data_len);
+    if (!data) { *size=0; return NULL;}
+    memcpy(data,q->front->data,q->front->data_len);
+    *size=q->front->data_len;
+    return data;
 }
 
 // indexes are allways correlative, so just substract
-size_t queue_size(queue_t *q) {
-    if (!q) return 0;
-    size_t count=0;
-    qitem_t *item=q->first_out;
-    if (!q->first_out) return 0;
-    return 1 + q->last_out->index - q->first_out->index;
+size_t queue_size(queue *q) {
+    if (!q) return -1;
+    return q->size;
 }
 
-void queue_expire(queue_t *q) {
-    if (!q) return;
-    qitem_t *item=q->first_out;
-    // retrieve last item
-    while ( item ) {
-        // not expired, return
-        if (item->expire > current_timestamp()) return;
-        // fprintf(stderr,"(%s) expire index:%d\n",q->name,item->index);
-        // expired: remove content and go for next element
-        char *msg= queue_get(q);
-        if (msg) free(msg); // don't need message: remove it
-        item = q->first_out;
-    }
-}
 
 #undef IMALIVE_TOOLS_C

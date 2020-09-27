@@ -47,10 +47,17 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
 static struct lws_protocols protocols[] =  {
 		/* The first protocol must always be the HTTP handler */
 		/* name,callback,per session data, max frame size */
-		{"http-only", callback_http,  0,0 	},
+		{"http", callback_http,  0,0 	},
 		{"imalive", callback_imalive,0,IMALIVE_RX_BUFFER_BYTES, },
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
+
+
+int ws_sendData(char *data, size_t *len) {
+    // PENDING
+    // put data in queue
+    return *len;
+}
 
 void init_wsService(void ) {
     extern configuration *myConfig;

@@ -40,31 +40,33 @@ int clst_freeData(){
 }
 
 /* return -1:error 0:nochange 1:change */
-int clst_setData(cl_status *st,char *fmt){
+int clst_setData(cl_status *st,char *data){
     st->timestamp=time(NULL);
-    if (strcmp(fmt,st->state)!=0) {
-        debug(DBG_TRACE,"new state '%s' => '%s'",st->state,fmt);
-        snprintf(st->state,BUFFER_LENGTH,"%s",fmt);
+    if (strcmp(data,st->state)!=0) {
+        debug(DBG_TRACE,"new state '%s' => '%s'",st->state,data);
+        snprintf(st->state,BUFFER_LENGTH,"%s",data);
         return 1;
     }
     debug(DBG_TRACE,"unchanged '%s'",st->state);
     return 0;
 }
 
-int clst_setDataByIndex(int index, char *fmt) {
+/* return -1:error 0:nochange 1:change */
+int clst_setDataByIndex(int index, char *data) {
     if ((index<0) || (index>=NUM_CLIENTS)) {
         debug(DBG_ERROR,"index %d out of range",index);
         return -1;
     }
-    return clst_setData(&status[index],fmt);
+    return clst_setData(&status[index],data);
 }
 
-int clst_setDataByName(char *client,char *fmt) {
+/* return -1:error 0:nochange 1:change */
+int clst_setDataByName(char *client,char *data) {
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         if (strpos(pt->state,client)!=0) continue;
         // entry found. handle it
-        return clst_setData(pt,fmt);
+        return clst_setData(pt,data);
     }
     // arriving here means client not found
     debug(DBG_ERROR,"client '%s' not found",client);
@@ -148,7 +150,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
     return result;
 }
 
-int clst_expireData(cl_status *st){
+int clst_expireData(){
     int count=0;
     time_t current=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
