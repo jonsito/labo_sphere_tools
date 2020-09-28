@@ -10,6 +10,7 @@
 #include <utmpx.h>
 #include <netdb.h>
 #include <signal.h>
+#include <time.h>
 #include <errno.h>
 
 #include "im_alive.h"
@@ -214,10 +215,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    time_t start_time=time(NULL);
+
     // enter loop. exit on kill or SIGTERM
     while (myConfig.loop) {
         // compose string to be sent
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
+        // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,start_time,binario,getUsers());
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
         sendto(sock, data_to_send, strlen(data_to_send), 0,(struct sockaddr*)&server_address, sizeof(server_address));

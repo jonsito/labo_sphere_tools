@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/param.h>
@@ -179,7 +180,14 @@ int main(int argc, char *argv[]) {
         } else {
             // inet_ntoa prints user friendly representation of the ip address
             buffer[len] = '\0';
-            debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'\n", tstamp,buffer, inet_ntoa(client_address.sin_addr));
+            debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'", tstamp,buffer, inet_ntoa(client_address.sin_addr));
+            // take care on old ( no uptime provided ) client protocol
+            if (!isdigit(buffer[6])) {
+                int nelem=0;
+                char **tokens=tokenize(buffer,':',&nelem);
+                snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[1],tokens[2]);
+                free_tokens(tokens);
+            }
             // extract host name
             snprintf(name,32,"%s",buffer);
             name[31]='\0';
