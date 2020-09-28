@@ -10,7 +10,14 @@
 #include "debug.h"
 #include "wsserver.h"
 
-static struct payload received_payload;
+static struct payload msg_buffer[MSG_BUFFER_SIZE]; // circular buffer
+static int msg_index; // index to next-to-be-receiver message
+struct lws_context *context;
+
+struct per_session_data {
+        struct lws *wsi;
+        int msg_index;
+};
 
 static int callback_http( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len ) {
     int s;
@@ -29,14 +36,32 @@ static int callback_http( struct lws *wsi, enum lws_callback_reasons reason, voi
 }
 
 static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len ) {
+    struct payload pld;
+    struct per_session_data *pss=(struct per_session_data *) user;
 	switch( reason ) {
+	    case LWS_CALLBACK_ESTABLISHED:
+	        // initialize our pss data to current index
+	        pss->wsi=wsi;
+	        pss->msg_index=msg_index;
+	        break;
+	    case LWS_CALLBACK_CLOSED:
+	        debug(DBG_INFO,"websocket closed");
 		case LWS_CALLBACK_RECEIVE:
-			memcpy( &received_payload.data[LWS_SEND_BUFFER_PRE_PADDING], in, len );
-			received_payload.len = len;
-			lws_callback_on_writable_all_protocol( lws_get_context( wsi ), lws_get_protocol( wsi ) );
+		    // not used. just notify unexpected data receive
+			memcpy( &pld.data[LWS_SEND_BUFFER_PRE_PADDING], in, len );
+			pld.len = len;
+			pld.data[LWS_SEND_BUFFER_PRE_PADDING+len]='\0';
+			debug(DBG_INFO,"unexpected data %s received from websocket",pld.data[LWS_SEND_BUFFER_PRE_PADDING]);
+            // lws_callback_on_writable_all_protocol( lws_get_context( wsi ), lws_get_protocol( wsi ) );
 			break;
 		case LWS_CALLBACK_SERVER_WRITEABLE:
-			lws_write( wsi, &received_payload.data[LWS_SEND_BUFFER_PRE_PADDING], received_payload.len, LWS_WRITE_TEXT );
+		    if (pss->msg_index==msg_index) return 0; // no data available
+		    // extract data from pessage buffer
+		    memcpy(pld.data,msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
+		    pld.len=msg_buffer[pss->msg_index].len;
+		    // increase pss session buffer index
+		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
+			lws_write( wsi, &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
 			break;
 		default:
 			break;
@@ -48,15 +73,19 @@ static struct lws_protocols protocols[] =  {
 		/* The first protocol must always be the HTTP handler */
 		/* name,callback,per session data, max frame size */
 		{"http", callback_http,  0,0 	},
-		{"imalive", callback_imalive,0,IMALIVE_RX_BUFFER_BYTES, },
+		{"imalive", callback_imalive,sizeof(struct per_session_data),IMALIVE_RX_BUFFER_BYTES, },
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
 
 
 int ws_sendData(char *data, size_t *len) {
-    // PENDING
-    // put data in queue
-    return *len;
+    // insert data into buffer
+    memcpy(msg_buffer[msg_index].data,data,*len);
+    msg_buffer[msg_index].len=*len;
+    msg_index=(msg_index+1)%MSG_BUFFER_SIZE;
+    // notify connected clients that there is data available
+    lws_callback_on_writable_all_protocol(context, &protocols[PROTOCOL_IMALIVE] );
+    return msg_index;
 }
 
 void init_wsService(void ) {
@@ -76,13 +105,13 @@ void init_wsService(void ) {
                     LWS_SERVER_OPTION_DISABLE_IPV6 |
                     LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED |
                     LWS_SERVER_OPTION_IGNORE_MISSING_CERT;
-    struct lws_context *context = lws_create_context( &info );
+    context = lws_create_context( &info );
     if (!context) {
         debug(DBG_ERROR,"Cannot create wss context");
         return;
     }
 	while( myConfig->loop )	{
-		lws_service( context, /* timeout_ms = */ 1000000 );
+		lws_service( context, /* timeout_ms = */ 1000000 ); // do not set to zero to allow external close request
 	}
 	lws_context_destroy( context );
 }

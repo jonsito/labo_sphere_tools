@@ -13,6 +13,8 @@
 
 #include <libwebsockets.h>
 #define IMALIVE_RX_BUFFER_BYTES (256)
+#define MSG_BUFFER_SIZE (256)
+
 struct payload {
     unsigned char data[LWS_SEND_BUFFER_PRE_PADDING + IMALIVE_RX_BUFFER_BYTES + LWS_SEND_BUFFER_POST_PADDING];
     size_t len;
