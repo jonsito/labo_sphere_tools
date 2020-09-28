@@ -34,11 +34,12 @@
 #define DBG_ALL 8
 
 #define LOG_FILE "/var/log/im_alive.log"
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 /*
 #define debug(l,a, ...) debug_print(l, __FILE__, a, ##__VA_ARGS__ )
  */
-#define debug(l,a, ...) debug_print(l, __FILE__, __LINE__, a, ##__VA_ARGS__ )
+#define debug(l,a, ...) debug_print(l, __FILENAME__, __LINE__, a, ##__VA_ARGS__ )
 
 #ifndef PROJECT_DEBUG_C_
 #define EXTERN extern
