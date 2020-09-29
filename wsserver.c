@@ -62,10 +62,11 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
 			break;
 		case LWS_CALLBACK_SERVER_WRITEABLE:
 		    if (pss->msg_index==msg_index) return 0; // no data available
-            debug(DBG_INFO,"websocket send index %d",pss->msg_index);
 		    // extract data from pessage buffer
 		    memcpy(pld.data,msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
 		    pld.len=msg_buffer[pss->msg_index].len;
+            pld.data[pld.len]='\0'; // to allow debug
+            debug(DBG_INFO,"websocket send index:%d data:'%s' len:%d",pss->msg_index,pld.data,pld.len);
 		    // increase pss session buffer index
 		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
 			lws_write( wsi, &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
