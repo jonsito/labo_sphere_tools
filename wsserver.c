@@ -67,7 +67,7 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
 		    memcpy(&pld.data[LWS_SEND_BUFFER_PRE_PADDING],msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
 		    pld.len=msg_buffer[pss->msg_index].len;
             debug(DBG_INFO,"websocket send index:%d padding:%d data:'%s' len:%d",
-                  LWS_SEND_BUFFER_PRE_PADDING,pss->msg_index,pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
+                  LWS_SEND_BUFFER_PRE_PADDING,pss->msg_index,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
 		    // increase pss session buffer index
 		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
 			lws_write( wsi, &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
@@ -89,8 +89,8 @@ static struct lws_protocols protocols[] =  {
 
 int ws_sendData(char *data, size_t *len) {
     // insert data into buffer
-    memcpy(msg_buffer[msg_index].data,data,*len);
-    msg_buffer[msg_index].len=*len;
+    memcpy(msg_buffer[msg_index].data,data,1+*len); // add 1 to include ending zero in data to be sent
+    msg_buffer[msg_index].len=1 + *len;
     msg_index=(msg_index+1)%MSG_BUFFER_SIZE;
     // notify connected clients that there is data available
     lws_callback_on_writable_all_protocol(context, &protocols[PROTOCOL_IMALIVE] );
