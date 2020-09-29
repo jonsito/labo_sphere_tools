@@ -8,6 +8,7 @@
 #include <libwebsockets.h>
 #include <im_alive.h>
 #include "debug.h"
+#include "client_state.h"
 #include "wsserver.h"
 
 static struct payload msg_buffer[MSG_BUFFER_SIZE]; // circular buffer
@@ -40,6 +41,11 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
     struct per_session_data *pss=(struct per_session_data *) user;
 	switch( reason ) {
 	    case LWS_CALLBACK_ESTABLISHED:
+            debug(DBG_INFO,"websocket created");
+            // PENDING: force expire of all entries, to make sure that client receives every updates
+            // this is a bit brute-forece, as every ws clients will be force-updated,
+            // but not expected so many clients
+            clst_initData();
 	        // initialize our pss data to current index
 	        pss->wsi=wsi;
 	        pss->msg_index=msg_index;
@@ -56,6 +62,7 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
 			break;
 		case LWS_CALLBACK_SERVER_WRITEABLE:
 		    if (pss->msg_index==msg_index) return 0; // no data available
+            debug(DBG_INFO,"websocket send index %d",pss->msg_index);
 		    // extract data from pessage buffer
 		    memcpy(pld.data,msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
 		    pld.len=msg_buffer[pss->msg_index].len;
