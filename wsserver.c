@@ -61,7 +61,7 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
             // lws_callback_on_writable_all_protocol( lws_get_context( wsi ), lws_get_protocol( wsi ) );
 			break;
 		case LWS_CALLBACK_SERVER_WRITEABLE:
-		    if (pss->msg_index==msg_index) return 0; // no data available
+		    if (pss->msg_index==msg_index) return 0; // mark no more data available
 		    // extract data from pessage buffer
 		    memset(pld.data,0,sizeof(pld.data));
 		    memcpy(&pld.data[LWS_SEND_BUFFER_PRE_PADDING],msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
@@ -70,7 +70,7 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
                   LWS_SEND_BUFFER_PRE_PADDING,pss->msg_index,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
 		    // increase pss session buffer index
 		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
-			lws_write( wsi, &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
+			lws_write( wsi, (unsigned char *) &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
 			break;
 		default:
 			break;
@@ -82,15 +82,16 @@ static struct lws_protocols protocols[] =  {
 		/* The first protocol must always be the HTTP handler */
 		/* name,callback,per session data, max frame size */
 		{"http", callback_http,  0,0 	},
-		{"imalive", callback_imalive,sizeof(struct per_session_data),IMALIVE_RX_BUFFER_BYTES, },
+		{"imalive", callback_imalive,sizeof(struct per_session_data),BUFFER_LENGTH },
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
 
 
-int ws_sendData(char *data, size_t *len) {
+int ws_sendData(char *data) {
     // insert data into buffer
-    memcpy(msg_buffer[msg_index].data,data,1+*len); // add 1 to include ending zero in data to be sent
-    msg_buffer[msg_index].len=1 + *len;
+    snprintf(msg_buffer[msg_index].data,BUFFER_LENGTH-1,"%s",data);
+    msg_buffer[msg_index].data[BUFFER_LENGTH-1]='\0';
+    msg_buffer[msg_index].len=strlen(msg_buffer[msg_index].data);
     msg_index=(msg_index+1)%MSG_BUFFER_SIZE;
     // notify connected clients that there is data available
     lws_callback_on_writable_all_protocol(context, &protocols[PROTOCOL_IMALIVE] );

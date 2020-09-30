@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <sys/param.h>
 
@@ -14,15 +15,15 @@
 #include "tools.h"
 
 static cl_status status[NUM_CLIENTS];
-static char cl_data[NUM_CLIENTS][BUFFER_LENGTH];
 
 int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        pt->state=cl_data[n];
+        // host:state:server:users  host => -1:indeterminate 0:off 1:on >1:uptime
+        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-",n);
+        pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:-1:-:-",n);
     }
     return 0;
 }
@@ -43,8 +44,9 @@ int clst_freeData(){
 int clst_setData(cl_status *st,char *data){
     st->timestamp=time(NULL);
     if (strcmp(data,st->state)!=0) {
-        debug(DBG_TRACE,"new state '%s' => '%s'",st->state,data);
-        snprintf(st->state,BUFFER_LENGTH,"%s",data);
+        debug(DBG_TRACE,"old state: '%s' => new state: '%s'",st->state,data);
+        snprintf(st->state,BUFFER_LENGTH-1,"%s",data);
+        st->state[BUFFER_LENGTH-1]='\0';
         return 1;
     }
     debug(DBG_TRACE,"unchanged '%s'",st->state);
@@ -101,6 +103,7 @@ char *clst_getDataByName(char *client,int format){  /* 0:csv 1:json 2:xml */
         // entry found. handle it
         return clst_getData(pt,format); // found
     }
+    debug(DBG_ERROR,"clst_getDataByName():: client '%s' not found",client);
     return NULL; // not found
 }
 
@@ -209,7 +212,8 @@ void init_expireThread() {
     extern configuration *myConfig;
     // enter loop
     while( myConfig->loop )	{
-        clst_expireData(status);
+        clst_expireData();
+        sleep(EXPIRE_TIME);
     }
 }
 

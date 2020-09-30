@@ -12,11 +12,11 @@
 #endif
 
 #include <libwebsockets.h>
-#define IMALIVE_RX_BUFFER_BYTES (256)
+#include "client_state.h"
 #define MSG_BUFFER_SIZE (256)
 
 struct payload {
-    unsigned char data[LWS_SEND_BUFFER_PRE_PADDING + IMALIVE_RX_BUFFER_BYTES + LWS_SEND_BUFFER_POST_PADDING];
+    char data[LWS_SEND_BUFFER_PRE_PADDING + BUFFER_LENGTH + LWS_SEND_BUFFER_POST_PADDING];
     size_t len;
 };
 
@@ -27,7 +27,7 @@ enum protocols {
 };
 
 EXTERN void init_wsService( void );
-EXTERN int ws_sendData(char *data, size_t *len);
+EXTERN int ws_sendData(char *data);
 
 #undef EXTERN
 #endif //WSSERVER_H

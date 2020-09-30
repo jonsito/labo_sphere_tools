@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
             // insert into state table
             int res=clst_setDataByName(name,buffer);
             // if need to broadcast to websocket do it
-            if (res>0) ws_sendData(buffer,&len);
+            if (res>0) ws_sendData(buffer);
             // send same content back to the client ("echo")
             sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address, sizeof(client_address));
         }

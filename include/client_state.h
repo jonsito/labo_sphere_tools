@@ -15,7 +15,7 @@
 
 typedef struct cl_status_st {
     time_t timestamp;
-    char* state; /* client:state:server:users */
+    char state[BUFFER_LENGTH]; /* client:state:server:users */
 } cl_status;
 
 #define NUM_CLIENTS 255
