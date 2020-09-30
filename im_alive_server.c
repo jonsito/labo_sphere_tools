@@ -182,14 +182,16 @@ int main(int argc, char *argv[]) {
             buffer[len] = '\0';
             debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'", tstamp,buffer, inet_ntoa(client_address.sin_addr));
             // take care on old ( no uptime provided ) client protocol
+            int nelem=0;
+            char **tokens=tokenize(buffer,':',&nelem);
             // old protocol is lxxx:binarioX:users
             // new protocol is lxxx:uptime:binarioX:users
-            if (isdigit(buffer[5])) { // on new protocol ignore uptime ( for now ) as interferes with expiration
-                int nelem=0;
-                char **tokens=tokenize(buffer,':',&nelem);
+            if (buffer[5]=='b') {  // old protocol
                 snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[1],tokens[2]);
-                free_tokens(tokens);
+            } else { // on new protocol ignore uptime ( for now ) as interferes with expiration
+                snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[2],tokens[3]);
             }
+            free_tokens(tokens);
             // extract host name. A bit dirty, as asume fixed name format lxxx, but works
             memset(name,0,sizeof(name));
             memcpy(name,buffer,4);
