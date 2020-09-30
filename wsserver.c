@@ -67,7 +67,7 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
 		    memcpy(&pld.data[LWS_SEND_BUFFER_PRE_PADDING],msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
 		    pld.len=msg_buffer[pss->msg_index].len;
             debug(DBG_INFO,"websocket send index:%d padding:%d data:'%s' len:%d",
-                  LWS_SEND_BUFFER_PRE_PADDING,pss->msg_index,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
+                  pss->msg_index,LWS_SEND_BUFFER_PRE_PADDING,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
 		    // increase pss session buffer index
 		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
 			lws_write( wsi, (unsigned char *) &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );

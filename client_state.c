@@ -13,6 +13,7 @@
 #include "client_state.h"
 #include "debug.h"
 #include "tools.h"
+#include "wsserver.h"
 
 static cl_status status[NUM_CLIENTS];
 
@@ -160,10 +161,12 @@ int clst_expireData(){
         cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
         if (strpos (pt->state,":0:-:-")>0) continue; // already expired
-        debug(DBG_INFO,"Expiring entry '%s'",pt->state);
+        debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "unknown". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
         snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
+        // notify websocket server that entry has expired to update wsclients
+        ws_sendData(pt->state);
         count++;
     }
     return count; // number of entries expired
