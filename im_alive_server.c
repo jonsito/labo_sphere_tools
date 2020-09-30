@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
         } else {
             // inet_ntoa prints user friendly representation of the ip address
             buffer[len] = '\0';
-            debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'", tstamp,buffer, inet_ntoa(client_address.sin_addr));
+            // debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'", tstamp,buffer, inet_ntoa(client_address.sin_addr));
             // take care on old ( no uptime provided ) client protocol
             int nelem=0;
             char **tokens=tokenize(buffer,':',&nelem);

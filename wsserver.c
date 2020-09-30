@@ -88,6 +88,7 @@ static struct lws_protocols protocols[] =  {
 
 
 int ws_sendData(char *data) {
+    debug(DBG_TRACE,"inserting to be sent at index: %d data '%s'",msg_index,data);
     // insert data into buffer
     snprintf(msg_buffer[msg_index].data,BUFFER_LENGTH-1,"%s",data);
     msg_buffer[msg_index].data[BUFFER_LENGTH-1]='\0';
