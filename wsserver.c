@@ -121,7 +121,7 @@ void init_wsService(void ) {
         return;
     }
 	while( myConfig->loop )	{
-		lws_service( context, /* timeout_ms = */ 1000000 ); // do not set to zero to allow external close request
+		lws_service( context, /* timeout_ms = */ 1000 ); // do not set to zero to allow external close request
 	}
 	lws_context_destroy( context );
 }

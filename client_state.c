@@ -162,7 +162,7 @@ int clst_expireData(){
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
         if (strpos (pt->state,":0:-:-")>0) continue; // already expired
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
-        // expired. set state to "unknown". Notice reuse of current buffer.
+        // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
         snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
         // notify websocket server that entry has expired to update wsclients
