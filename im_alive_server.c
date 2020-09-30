@@ -182,16 +182,17 @@ int main(int argc, char *argv[]) {
             buffer[len] = '\0';
             debug( DBG_TRACE,"Time:%lu Received:'%s' from client:'%s'", tstamp,buffer, inet_ntoa(client_address.sin_addr));
             // take care on old ( no uptime provided ) client protocol
-            if (!isdigit(buffer[6])) {
+            // old protocol is lxxx:binarioX:users
+            // new protocol is lxxx:uptime:binarioX:users
+            if (isdigit(buffer[5])) { // on new protocol ignore uptime ( for now ) as interferes with expiration
                 int nelem=0;
                 char **tokens=tokenize(buffer,':',&nelem);
                 snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[1],tokens[2]);
                 free_tokens(tokens);
             }
-            // extract host name
-            snprintf(name,32,"%s",buffer);
-            name[31]='\0';
-            if (strpos(name,":")>0) name[strpos(name,":")]='\0';
+            // extract host name. A bit dirty, as asume fixed name format lxxx, but works
+            memset(name,0,sizeof(name));
+            memcpy(name,buffer,4);
             // insert into state table
             int res=clst_setDataByName(name,buffer);
             // if need to broadcast to websocket do it
