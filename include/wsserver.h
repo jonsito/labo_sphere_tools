@@ -14,7 +14,7 @@
 #include <libwebsockets.h>
 #include "client_state.h"
 #define MSG_BUFFER_SIZE (256)
-#define MSG_CHUNK_SIZE 10
+#define MSG_CHUNK_SIZE 15
 
 struct payload {
     char data[LWS_SEND_BUFFER_PRE_PADDING + BUFFER_LENGTH + LWS_SEND_BUFFER_POST_PADDING];
