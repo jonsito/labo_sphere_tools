@@ -125,6 +125,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
     }
     result=str_concat(result,str);
     for (int n=cl_from;n<=cl_to;n++) {
+        debug(DBG_TRACE,"getList index:%d value:%s",n,result);
         cl_status *pt=&status[n];
         char *entry=clst_getData(pt,format);
         if (!entry) continue;
@@ -144,8 +145,8 @@ char *clst_getList(int cl_from,int cl_to, int format) {
     }
     // handle footer
     switch(format%3) {
-        case 0: /* csv: add newline */
-            str="\n";  break;
+        case 0: /* csv: add nothing */
+            str="";  break;
         case 1: /* json: add '\n]' end mark */
             str="\n]"; break;
         case 2: /* xml: add newline and close tag */
