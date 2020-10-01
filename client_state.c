@@ -109,7 +109,6 @@ char *clst_getDataByName(char *client,int format){  /* 0:csv 1:json 2:xml */
 }
 
 char *clst_getList(int cl_from,int cl_to, int format) {
-    debug(DBG_TRACE,"getList()::enter from:%d to:%d format:%d",cl_from,cl_to,0);
     char *result=calloc(500,sizeof(char));
     char *str=NULL;
     cl_from=MAX(0,cl_from);
@@ -125,7 +124,6 @@ char *clst_getList(int cl_from,int cl_to, int format) {
     }
     result=str_concat(result,str);
     for (int n=cl_from;n<=cl_to;n++) {
-        debug(DBG_TRACE,"getList index:%d value:%s",n,result);
         cl_status *pt=&status[n];
         char *entry=clst_getData(pt,format);
         if (!entry) continue;
@@ -153,7 +151,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
             str="\n</statelist>\n";  break;
     }
     result=str_concat(result,str);
-    debug(DBG_TRACE,"getList from:%d to:%d format:%d returns:\n%s",cl_from,cl_to,0,result);
+    // debug(DBG_TRACE,"getList from:%d to:%d format:%d returns:\n%s",cl_from,cl_to,0,result);
     return result;
 }
 
