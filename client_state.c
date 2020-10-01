@@ -165,8 +165,6 @@ int clst_expireData(){
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
         snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
-        // notify websocket server that entry has expired to update wsclients
-        ws_sendData(pt->state);
         count++;
     }
     return count; // number of entries expired

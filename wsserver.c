@@ -11,14 +11,8 @@
 #include "client_state.h"
 #include "wsserver.h"
 
-static struct payload msg_buffer[MSG_BUFFER_SIZE]; // circular buffer
 static int msg_index; // index to next-to-be-receiver message
 struct lws_context *context;
-
-struct per_session_data {
-        struct lws *wsi;
-        int msg_index;
-};
 
 static int callback_http( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len ) {
     int s;
@@ -38,7 +32,6 @@ static int callback_http( struct lws *wsi, enum lws_callback_reasons reason, voi
 
 static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len ) {
     struct payload pld;
-    struct per_session_data *pss=(struct per_session_data *) user;
 	switch( reason ) {
 	    case LWS_CALLBACK_ESTABLISHED:
             debug(DBG_INFO,"websocket created");
@@ -46,9 +39,6 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
             // this is a bit brute-forece, as every ws clients will be force-updated,
             // but not expected so many clients
             clst_initData();
-	        // initialize our pss data to current index
-	        pss->wsi=wsi;
-	        pss->msg_index=msg_index;
 	        break;
 	    case LWS_CALLBACK_CLOSED:
 	        debug(DBG_INFO,"websocket closed");
@@ -61,15 +51,17 @@ static int callback_imalive( struct lws *wsi, enum lws_callback_reasons reason, 
             // lws_callback_on_writable_all_protocol( lws_get_context( wsi ), lws_get_protocol( wsi ) );
 			break;
 		case LWS_CALLBACK_SERVER_WRITEABLE:
-		    if (pss->msg_index==msg_index) return 0; // mark no more data available
 		    // extract data from pessage buffer
 		    memset(pld.data,0,sizeof(pld.data));
-		    memcpy(&pld.data[LWS_SEND_BUFFER_PRE_PADDING],msg_buffer[pss->msg_index].data,msg_buffer[pss->msg_index].len);
-		    pld.len=msg_buffer[pss->msg_index].len;
+		    char *items=clst_getList(msg_index,msg_index+10,0);
+		    memcpy(&pld.data[LWS_SEND_BUFFER_PRE_PADDING],items,strlen(items));
+		    pld.len=strlen(items);
             debug(DBG_INFO,"websocket send index:%d padding:%d data:'%s' len:%d",
-                  pss->msg_index,LWS_SEND_BUFFER_PRE_PADDING,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
+                  msg_index,LWS_SEND_BUFFER_PRE_PADDING,&pld.data[LWS_SEND_BUFFER_PRE_PADDING],pld.len);
 		    // increase pss session buffer index
-		    pss->msg_index=(pss->msg_index+1)%MSG_BUFFER_SIZE;
+		    msg_index+=MSG_CHUNK_SIZE;
+		    if (msg_index>=NUM_CLIENTS) msg_index=0;
+		    free(items);
 			lws_write( wsi, (unsigned char *) &pld.data[LWS_SEND_BUFFER_PRE_PADDING], pld.len, LWS_WRITE_TEXT );
 			break;
 		default:
@@ -82,22 +74,9 @@ static struct lws_protocols protocols[] =  {
 		/* The first protocol must always be the HTTP handler */
 		/* name,callback,per session data, max frame size */
 		{"http", callback_http,  0,0 	},
-		{"imalive", callback_imalive,sizeof(struct per_session_data),BUFFER_LENGTH },
+		{"imalive", callback_imalive,0,BUFFER_LENGTH },
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
-
-
-int ws_sendData(char *data) {
-    debug(DBG_TRACE,"inserting to be sent at index: %d data '%s'",msg_index,data);
-    // insert data into buffer
-    snprintf(msg_buffer[msg_index].data,BUFFER_LENGTH-1,"%s",data);
-    msg_buffer[msg_index].data[BUFFER_LENGTH-1]='\0';
-    msg_buffer[msg_index].len=strlen(msg_buffer[msg_index].data);
-    msg_index=(msg_index+1)%MSG_BUFFER_SIZE;
-    // notify connected clients that there is data available
-    lws_callback_on_writable_all_protocol(context, &protocols[PROTOCOL_IMALIVE] );
-    return msg_index;
-}
 
 void init_wsService(void ) {
     extern configuration *myConfig;

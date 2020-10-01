@@ -83,6 +83,7 @@ int strpos(char *haystack, char *needle) {
     if (p) return (int)(p - haystack);
     return -1;
 }
+
 // add str2 to str1
 char * str_concat(char *str1,char *str2) {
         size_t len=0;
