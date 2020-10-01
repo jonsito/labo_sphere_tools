@@ -78,7 +78,7 @@ int clst_setDataByName(char *client,char *data) {
 
 char *clst_getData(cl_status *st,int format) {
 
-    char *csv_template ="%s:%s:%s:%s"; // notice end of line
+    char *csv_template ="%s:%s:%s:%s"; // notice no end of line
     char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\"}";
     char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users></client>";
     int nelem=0;
@@ -128,6 +128,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
         char *entry=clst_getData(pt,format);
         if (!entry) continue;
         result=str_concat(result,entry);
+        free(entry);
         if (n<(NUM_CLIENTS-1)) { // do not add field separator on last item
             switch(format%3) {
                 case 0: /* csv: add newline */
@@ -139,7 +140,6 @@ char *clst_getList(int cl_from,int cl_to, int format) {
             }
             result=str_concat(result,str);
         }
-        free(entry);
     }
     // handle footer
     switch(format%3) {
@@ -151,6 +151,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
             str="\n</statelist>\n";  break;
     }
     result=str_concat(result,str);
+    debug(DBG_TRACE,"getList from:%d to:%d format:%d returns:\n%s",cl_from,cl_to,0,result);
     return result;
 }
 
