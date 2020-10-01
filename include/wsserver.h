@@ -28,6 +28,7 @@ enum protocols {
 };
 
 EXTERN void init_wsService( void );
+EXTERN void ws_dataAvailable(void);
 
 #undef EXTERN
 #endif //WSSERVER_H

@@ -169,6 +169,8 @@ int clst_expireData(){
         snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
         count++;
     }
+    // on change notify websockets
+    if (count>0) ws_dataAvailable();
     return count; // number of entries expired
 }
 

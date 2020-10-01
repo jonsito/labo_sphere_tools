@@ -86,6 +86,9 @@ static struct lws_protocols protocols[] =  {
 		{ NULL, NULL, 0, 0 } /* terminator */
 };
 
+void ws_dataAvailable() {
+    lws_callback_on_writable_all_protocol(context, &protocols[PROTOCOL_IMALIVE] );
+}
 void init_wsService(void ) {
     extern configuration *myConfig;
 	struct lws_context_creation_info info;

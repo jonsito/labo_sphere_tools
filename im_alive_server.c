@@ -2,13 +2,11 @@
 // Created by jantonio on 27/8/20.
 //
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <ctype.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/param.h>
@@ -197,6 +195,7 @@ int main(int argc, char *argv[]) {
             memcpy(name,buffer,4);
             // insert into state table
             int res=clst_setDataByName(name,buffer);
+            if (res>=0) ws_dataAvailable();
             // send same content back to the client ("echo")
             sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address, sizeof(client_address));
         }
