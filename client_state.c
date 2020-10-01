@@ -109,6 +109,7 @@ char *clst_getDataByName(char *client,int format){  /* 0:csv 1:json 2:xml */
 }
 
 char *clst_getList(int cl_from,int cl_to, int format) {
+    debug(DBG_TRACE,"getList()::enter from:%d to:%d format:%d",cl_from,cl_to,0);
     char *result=NULL;
     char *str=NULL;
     cl_from=MAX(0,cl_from);
