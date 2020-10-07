@@ -120,8 +120,8 @@ char *getMemInfo() {
         // return data in kilobytes.
         // used memory evaluated as https://github.com/brndnmtthws/conky/issues/130
         snprintf(buffer,32,"%ld / %ld",
-                 ( s.totalram * s.mem_unit ) / 1024,
-                 ( (s.totalram - s.freeram - s.bufferram ) * s.mem_unit ) / 1024);
+                 ( (s.totalram - s.freeram - s.bufferram ) * s.mem_unit ) / 1024,
+                 ( s.totalram * s.mem_unit ) / 1024 );
     }
     return buffer;
 }
