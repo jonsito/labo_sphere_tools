@@ -110,17 +110,18 @@ char *getLoad() {
 
 char *getMemInfo() {
     static char buffer[32];
-    struct sysinfo sinfo;
-    int res=sysinfo(&sinfo);
+    struct sysinfo s;
+    int res=sysinfo(&s);
     if (res<0) {
         debug(DBG_ERROR,"cannot get memory information");
         snprintf(buffer,32,"0/0");
     } else {
-        debug(DBG_INFO,"totalram:%ld free:%ld buffers:%ld",sinfo.totalram,sinfo.freeram,sinfo.bufferram);
-        // return data in kilobytes. Do not include swap
+        debug(DBG_INFO,"totalram:%ld used:%ld buffers:%ld",s.totalram,s.freeram,s.bufferram);
+        // return data in kilobytes.
+        // used memory evaluated as https://github.com/brndnmtthws/conky/issues/130
         snprintf(buffer,32,"%ld/%ld",
-                 ( sinfo.totalram * sinfo.mem_unit ) / 1024,
-                 ( (sinfo.freeram + sinfo.bufferram /* + sinfo.freeswap */ ) * sinfo.mem_unit ) / 1024);
+                 ( s.totalram * s.mem_unit ) / 1024,
+                 ( (s.totalram - s.freeram - s.bufferram ) * s.mem_unit ) / 1024);
     }
     return buffer;
 }
