@@ -139,7 +139,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
         if (!entry) continue;
         result=str_concat(result,entry);
         free(entry);
-        if (n<(cl_to-1)) { // do not add field separator on last item
+        if (n<(cl_to)) { // do not add field separator on last item
             switch(format%3) {
                 case 0: /* csv: add newline */
                     str="\n";  break;
