@@ -8,7 +8,7 @@
 #define BINARIO "server"
 #define EXPIRE_TIME 90 /* 1.5 minutes expire timeout on server*/
 #define DELAY_LOOP 60 /* 1 minute poll period on client */
-#define BUFFER_LENGTH 512
+#define BUFFER_LENGTH 1024
 #define SSL_CERT_FILE_PATH "/etc/ssl/certs/acceso.lab.dit.upm.es.certificado.pem"
 #define SSL_PRIVATE_KEY_PATH "/etc/ssl/private/acceso.lab.dit.upm.es.llave.pem"
 

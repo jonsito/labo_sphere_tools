@@ -117,7 +117,7 @@ char *getMemInfo() {
         snprintf(buffer,32,"0/0");
     } else {
         // return data in kilobytes
-        snprintf(buffer,32,"%ld/%ld",sinfo.totalram/1024,sinfo.freehigh/1024);
+        snprintf(buffer,32,"%ld/%ld",sinfo.totalram/1024,sinfo.freeram/1024);
     }
     return buffer;
 }
