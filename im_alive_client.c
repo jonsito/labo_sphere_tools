@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/sysinfo.h>
 #include <unistd.h>
 #include <utmpx.h>
 #include <netdb.h>
@@ -92,6 +93,33 @@ long getUptime() {
         close(fd);
     }
     return (long) uptime_secs;
+}
+
+char *getLoad() {
+    static char buffer[32];
+    double load[3];
+    memset(buffer,0,sizeof(buffer));
+    if (getloadavg(load,3)<0) {
+        debug(DBG_ERROR,"cannot get loadavg");
+        snprintf(buffer,32,"0.0/0.0/0.0");
+    } else {
+        snprintf(buffer,32,"%.2f/%.2f/%.2f",load[0],load[1],load[2]);
+    }
+    return buffer;
+}
+
+char *getMemInfo() {
+    static char buffer[32];
+    struct sysinfo sinfo;
+    int res=sysinfo(&sinfo);
+    if (res<0) {
+        debug(DBG_ERROR,"cannot get memory information");
+        snprintf(buffer,32,"0/0");
+    } else {
+        // return data in kilobytes
+        snprintf(buffer,32,"%ld/%ld",sinfo.totalram/1024,sinfo.freehigh/1024);
+    }
+    return buffer;
 }
 
 static int usage(char *progname) {
@@ -215,13 +243,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    time_t start_time=time(NULL);
-
     // enter loop. exit on kill or SIGTERM
     while (myConfig.loop) {
         // compose string to be sent
         // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,start_time,binario,getUsers());
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s",hostname,getUptime(),binario,getUsers(),getLoad(),getMemInfo());
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
         sendto(sock, data_to_send, strlen(data_to_send), 0,(struct sockaddr*)&server_address, sizeof(server_address));

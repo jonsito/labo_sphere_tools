@@ -111,7 +111,8 @@ char *hexdump(char *data, size_t len) {
 }
 
 // this implementation does not handle escape char
-// also split up to 32 tokens
+// also split up to 32 tokens.
+// nelem returns number of tokens parsed
 char **tokenize(char *line, char separator,int *nelem) {
     char *buff = calloc(1+strlen(line), sizeof(char));
     strncpy(buff,line,strlen(line)); // copy string into working space

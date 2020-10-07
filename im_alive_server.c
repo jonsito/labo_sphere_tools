@@ -182,12 +182,19 @@ int main(int argc, char *argv[]) {
             // take care on old ( no uptime provided ) client protocol
             int nelem=0;
             char **tokens=tokenize(buffer,':',&nelem);
-            // old protocol is lxxx:binarioX:users
-            // new protocol is lxxx:uptime:binarioX:users
-            if (buffer[5]=='b') {  // old protocol
-                snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[1],tokens[2]);
-            } else { // on new protocol ignore uptime ( for now ) as interferes with expiration
-                snprintf(buffer,500,"%s:1:%s:%s",tokens[0],tokens[2],tokens[3]);
+            switch(nelem) {
+                case 3: // initial protocol was lxxx:binarioX:users
+                    snprintf(buffer,500,"%s:1:%s:%s:0.0/0.0/0.0:0/0",tokens[0],tokens[1],tokens[2]);
+                    break;
+                case 4: // prev protocol is lxxx:uptime:binarioX:users
+                    snprintf(buffer,500,"%s:%s:%s:%s:0.0/0.0/0.0:0/0",tokens[0],tokens[1],tokens[2],tokens[3]);
+                    break;
+                case 6: // new protocol is lxxx:uptime:binarioX:users:loadavg:meminfo
+                    snprintf(buffer,500,"%s:%s:%s:%s:%s:%s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5]);
+                    break;
+                default:
+                    debug(DBG_ERROR,"invalid data format received:'%s'",buffer);
+                    break;
             }
             free_tokens(tokens);
             // extract host name. A bit dirty, as asume fixed name format lxxx, but works

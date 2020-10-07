@@ -21,8 +21,12 @@ int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        // host:state:server:users  host => -1:indeterminate 0:off 1:on >1:uptime
-        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-",n);
+        // host:state:server:users:load:meminfo
+        // host => -1:indeterminate 0:off 1:on >1:uptime
+        // users => name[[,name]...]
+        // load => 1min/5min/15min
+        // meminfo => total/free
+        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0/0.0/0.0:0/0",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -36,22 +40,26 @@ int clst_freeData(){
         pt->timestamp=0;
         if (strstr(pt->state,":-1:-:-")>=0) count++; // not yet initialized
         if (strstr(pt->state,":0:-:-")>=0) count++; // already clean
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-",n);
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0/0.0/0.0:0/0",n);
     }
     return count;
 }
 
 /* return -1:error 0:nochange 1:change */
 int clst_setData(cl_status *st,char *data){
+    int res=0;
     st->timestamp=time(NULL);
-    if (strcmp(data,st->state)!=0) {
+    // just compare on/off state, as every else may change
+    if (strncmp(data,st->state,7)!=0) {
         debug(DBG_TRACE,"old state: '%s' => new state: '%s'",st->state,data);
-        snprintf(st->state,BUFFER_LENGTH-1,"%s",data);
-        st->state[BUFFER_LENGTH-1]='\0';
-        return 1;
+        res= 1;
+    } else {
+        debug(DBG_TRACE,"unchanged '%s'",st->state);
+        res=0;
     }
-    debug(DBG_TRACE,"unchanged '%s'",st->state);
-    return 0;
+    snprintf(st->state,BUFFER_LENGTH-1,"%s",data);
+    st->state[BUFFER_LENGTH-1]='\0';
+    return res;
 }
 
 /* return -1:error 0:nochange 1:change */
@@ -77,10 +85,10 @@ int clst_setDataByName(char *client,char *data) {
 }
 
 char *clst_getData(cl_status *st,int format) {
-
-    char *csv_template ="%s:%s:%s:%s"; // notice no end of line
-    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\"}";
-    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users></client>";
+    // host:state:server:users:load:meminfo
+    char *csv_template ="%s:%s:%s:%s:%s:%s"; // notice no end of line
+    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\"}";
+    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo></client>";
     int nelem=0;
 
     char *result=calloc(BUFFER_LENGTH,sizeof(char));
@@ -92,7 +100,9 @@ char *clst_getData(cl_status *st,int format) {
         case 1: /* json */ templ=json_template; break;
         case 2: /* xml; do not add header */ templ=xml_template; break;
     }
-    snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3]);
+    // compatibility with old clients:
+    if (nelem==6)  snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5]);
+    else snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0/0.0/0.0","0/0");
     free_tokens(tokens);
     return result;
 }
@@ -129,7 +139,7 @@ char *clst_getList(int cl_from,int cl_to, int format) {
         if (!entry) continue;
         result=str_concat(result,entry);
         free(entry);
-        if (n<(NUM_CLIENTS-1)) { // do not add field separator on last item
+        if (n<(cl_to-1)) { // do not add field separator on last item
             switch(format%3) {
                 case 0: /* csv: add newline */
                     str="\n";  break;
@@ -165,7 +175,7 @@ int clst_expireData(){
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0/0.0/0.0:0/0");
         count++;
     }
     // on change notify websockets
