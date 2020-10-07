@@ -116,8 +116,10 @@ char *getMemInfo() {
         debug(DBG_ERROR,"cannot get memory information");
         snprintf(buffer,32,"0/0");
     } else {
-        // return data in kilobytes
-        snprintf(buffer,32,"%ld/%ld",sinfo.totalram/1024,sinfo.freeram/1024);
+        // return data in kilobytes. Do not include swap
+        snprintf(buffer,32,"%ld/%ld",
+                 ( sinfo.totalram * sinfo.mem_unit ) / 1024,
+                 ( (sinfo.freeram + sinfo.bufferram /* + sinfo.freeswap */ ) * sinfo.mem_unit ) / 1024);
     }
     return buffer;
 }
