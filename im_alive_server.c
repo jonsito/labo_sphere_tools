@@ -184,10 +184,10 @@ int main(int argc, char *argv[]) {
             char **tokens=tokenize(buffer,':',&nelem);
             switch(nelem) {
                 case 3: // initial protocol was lxxx:binarioX:users
-                    snprintf(buffer,500,"%s:1:%s:%s:0.0/0.0/0.0:0/0",tokens[0],tokens[1],tokens[2]);
+                    snprintf(buffer,500,"%s:1:%s:%s:0.0 / 0.0 / 0.0:0 / 0",tokens[0],tokens[1],tokens[2]);
                     break;
                 case 4: // prev protocol is lxxx:uptime:binarioX:users
-                    snprintf(buffer,500,"%s:%s:%s:%s:0.0/0.0/0.0:0/0",tokens[0],tokens[1],tokens[2],tokens[3]);
+                    snprintf(buffer,500,"%s:%s:%s:%s:0.0 / 0.0 / 0.0:0 / 0",tokens[0],tokens[1],tokens[2],tokens[3]);
                     break;
                 case 6: // new protocol is lxxx:uptime:binarioX:users:loadavg:meminfo
                     snprintf(buffer,500,"%s:%s:%s:%s:%s:%s",tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5]);

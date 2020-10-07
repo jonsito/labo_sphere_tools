@@ -101,9 +101,9 @@ char *getLoad() {
     memset(buffer,0,sizeof(buffer));
     if (getloadavg(load,3)<0) {
         debug(DBG_ERROR,"cannot get loadavg");
-        snprintf(buffer,32,"0.0/0.0/0.0");
+        snprintf(buffer,32,"0.0 / 0.0 / 0.0");
     } else {
-        snprintf(buffer,32,"%.2f/%.2f/%.2f",load[0],load[1],load[2]);
+        snprintf(buffer,32,"%.2f / %.2f / %.2f",load[0],load[1],load[2]);
     }
     return buffer;
 }
@@ -114,12 +114,12 @@ char *getMemInfo() {
     int res=sysinfo(&s);
     if (res<0) {
         debug(DBG_ERROR,"cannot get memory information");
-        snprintf(buffer,32,"0/0");
+        snprintf(buffer,32,"0 / 0");
     } else {
-        debug(DBG_INFO,"totalram:%ld used:%ld buffers:%ld",s.totalram,s.freeram,s.bufferram);
+        debug(DBG_DEBUG,"totalram:%ld used:%ld buffers:%ld",s.totalram,s.freeram,s.bufferram);
         // return data in kilobytes.
         // used memory evaluated as https://github.com/brndnmtthws/conky/issues/130
-        snprintf(buffer,32,"%ld/%ld",
+        snprintf(buffer,32,"%ld / %ld",
                  ( s.totalram * s.mem_unit ) / 1024,
                  ( (s.totalram - s.freeram - s.bufferram ) * s.mem_unit ) / 1024);
     }

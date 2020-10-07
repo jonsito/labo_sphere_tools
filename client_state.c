@@ -26,7 +26,7 @@ int clst_initData(void){
         // users => name[[,name]...]
         // load => 1min/5min/15min
         // meminfo => total/free
-        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0/0.0/0.0:0/0",n);
+        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -40,7 +40,7 @@ int clst_freeData(){
         pt->timestamp=0;
         if (strstr(pt->state,":-1:-:-")>=0) count++; // not yet initialized
         if (strstr(pt->state,":0:-:-")>=0) count++; // already clean
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0/0.0/0.0:0/0",n);
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0",n);
     }
     return count;
 }
@@ -102,7 +102,7 @@ char *clst_getData(cl_status *st,int format) {
     }
     // compatibility with old clients:
     if (nelem==6)  snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5]);
-    else snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0/0.0/0.0","0/0");
+    else snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0");
     free_tokens(tokens);
     return result;
 }
@@ -175,7 +175,7 @@ int clst_expireData(){
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0/0.0/0.0:0/0");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0");
         count++;
     }
     // on change notify websockets
