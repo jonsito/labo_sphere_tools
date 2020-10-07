@@ -88,8 +88,8 @@ long getUptime() {
         close(fd);
         return -1;
     }
-    if(sscanf(read_buf, "%lf %lf", &(uptime_secs), &(idle_secs)) == 2) {
-        debug(DBG_ERROR,"Erron on sscanf, %s, line no %d\n", strerror(errno), __LINE__);
+    if(sscanf(read_buf, "%lf %lf", &(uptime_secs), &(idle_secs)) != 2) {
+        debug(DBG_ERROR,"Erron on sscanf /proc/uptime, %s, expected two floats", strerror(errno));
         close(fd);
     }
     return (long) uptime_secs;
@@ -116,6 +116,7 @@ char *getMemInfo() {
         debug(DBG_ERROR,"cannot get memory information");
         snprintf(buffer,32,"0/0");
     } else {
+        debug(DBG_INFO,"totalram:%l free:%l buffers:%l",sinfo.totalram,sinfo.freeram,sinfo.bufferram);
         // return data in kilobytes. Do not include swap
         snprintf(buffer,32,"%ld/%ld",
                  ( sinfo.totalram * sinfo.mem_unit ) / 1024,
