@@ -6,7 +6,15 @@
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
+#else
 #include <sys/sysinfo.h>
+#endif
 #include <unistd.h>
 #include <utmpx.h>
 #include <netdb.h>
@@ -70,14 +78,22 @@ char * getUsers() {
 
 // call to uptime. return number of seconds from client start
 long getUptime() {
+#ifdef __APPLE__
+    // from https://stackoverflow.com/questions/3269321/osx-programmatically-get-uptime
+    struct timeval boottime;
+    size_t len = sizeof(boottime);
+    int mib[2] = { CTL_KERN, KERN_BOOTTIME };
+    if( sysctl(mib, 2, &boottime, &len, NULL, 0) < 0 ) return -1;
+    time_t bsec = boottime.tv_sec; // running time
+    time_t csec = time(NULL); // current time
+    return (long) difftime(csec, bsec);
+#else
+    double uptime_secs=1;
     size_t num_bytes_read;
     int fd;
     char read_buf[128];
-    double uptime_secs;
     double idle_secs;
-
     fd = open("/proc/uptime", O_RDONLY, S_IRUSR | S_IRGRP | S_IROTH);
-
     if(fd <0) {
         debug(DBG_ERROR,"cannot open /proc/uptime");
         return -1;
@@ -90,9 +106,10 @@ long getUptime() {
     }
     if(sscanf(read_buf, "%lf %lf", &(uptime_secs), &(idle_secs)) != 2) {
         debug(DBG_ERROR,"Erron on sscanf /proc/uptime, %s, expected two floats", strerror(errno));
-        close(fd);
     }
+    close(fd);
     return (long) uptime_secs;
+#endif
 }
 
 char *getLoad() {
@@ -108,6 +125,44 @@ char *getLoad() {
     return buffer;
 }
 
+#ifdef __APPLE__
+// from https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+char *getMemInfo() {
+    static char buffer[32];
+
+    // get physical memory
+    int mib[2];
+    int64_t physical_memory;
+    size_t lenght;
+    mib[0]=CTL_HW;
+    mib[1]=HW_MEMSIZE;
+    lenght= sizeof(int64_t);
+    sysctl(mib,2, &physical_memory,&lenght,NULL,0);
+
+    // get used memory
+    vm_size_t page_size;
+    mach_port_t mach_port;
+    mach_msg_type_number_t count;
+    vm_statistics64_data_t vm_stats;
+    long long free_memory=0;
+    long long used_memory=0;
+
+    mach_port = mach_host_self();
+    count = sizeof(vm_stats) / sizeof(natural_t);
+    if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
+        KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO, (host_info64_t)&vm_stats, &count))  {
+            // free_memory = (int64_t)vm_stats.free_count * (int64_t)page_size;
+            used_memory = ((int64_t)vm_stats.active_count +
+                                 (int64_t)vm_stats.inactive_count +
+                                 (int64_t)vm_stats.wire_count) *  (int64_t)page_size;
+    }
+    // return data in kilobytes
+    snprintf(buffer,32,"%lld / %lld", used_memory/1024,physical_memory/1024);
+    return buffer;
+}
+
+#else
+// Linux: used memory evaluated as https://github.com/brndnmtthws/conky/issues/130
 char *getMemInfo() {
     static char buffer[32];
     struct sysinfo s;
@@ -118,13 +173,14 @@ char *getMemInfo() {
     } else {
         debug(DBG_DEBUG,"totalram:%ld used:%ld buffers:%ld",s.totalram,s.freeram,s.bufferram);
         // return data in kilobytes.
-        // used memory evaluated as https://github.com/brndnmtthws/conky/issues/130
         snprintf(buffer,32,"%ld / %ld",
                  ( (s.totalram - s.freeram - s.bufferram ) * s.mem_unit ) / 1024,
                  ( s.totalram * s.mem_unit ) / 1024 );
     }
     return buffer;
 }
+
+#endif
 
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);

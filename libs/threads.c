@@ -3,6 +3,7 @@
 //
 
 #define _GNU_SOURCE
+#include <unistd.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
