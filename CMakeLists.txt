@@ -11,17 +11,17 @@ add_executable(ImAlive_client ${LIBSRCS} ${INCLUDES} im_alive_client.c )
 add_executable(ImAlive_server ${LIBSRCS} ${INCLUDES} im_alive_server.c client_state.c wsserver.c)
 
 if(APPLE)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    set(BUILD_SHARED_LIBS OFF)
     target_compile_options(ImAlive_server PRIVATE -I/usr/local/include -I/usr/local/opt/openssl/include)
     target_link_options(ImAlive_server PRIVATE -L/usr/local/lib -L/usr/local/opt/openssl/lib)
     target_link_libraries(
             ImAlive_server
             "-framework IOKit"
             "-framework CoreFoundation"
-            crypto
-            ssl
-            websockets
+            /usr/local/opt/libwebsockets/lib/libwebsockets.a
+            /usr/local/opt/libuv/lib/libuv.a
+            /usr/local/opt/libevent/lib/libevent.a
+            /usr/local/opt/openssl@1.1/lib/libcrypto.a
+            /usr/local/opt/openssl@1.1/lib/libssl.a
     )
     target_link_libraries(
             ImAlive_client
@@ -30,5 +30,5 @@ if(APPLE)
     )
 else()
     target_link_libraries(ImAlive_client )
-    target_link_libraries(ImAlive_server crypto ssl websockets)
+    target_link_libraries(ImAlive_server websockets crypto ssl)
 endif()
