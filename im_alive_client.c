@@ -126,6 +126,7 @@ char *getComputerModel() {
     if (fp == NULL) {
         debug(DBG_ERROR,"cannot retrieve (dmidecode) hardware model");
         snprintf(buffer,32,"PC-unknown");
+        return buffer;
     }
     /* Read the output a line at a time - output it. */
     if (! fgets(buffer, sizeof(buffer), fp)) {
