@@ -26,7 +26,7 @@ int clst_initData(void){
         // users => name[[,name]...]
         // load => 1min/5min/15min
         // meminfo => total/free
-        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0",n);
+        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -38,9 +38,10 @@ int clst_freeData(){
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         pt->timestamp=0;
-        if (strstr(pt->state,":-1:-:-")>=0) count++; // not yet initialized
-        if (strstr(pt->state,":0:-:-")>=0) count++; // already clean
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0",n);
+        // check only (uptime/server/users) part
+        if (strstr(pt->state,":-1:-:-:")>=0) count++; // not yet initialized
+        if (strstr(pt->state,":0:-:-:")>=0) count++; // already clean
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
     }
     return count;
 }
@@ -55,7 +56,6 @@ int clst_setData(cl_status *st,char *data){
         res= 1;
     } else {
         debug(DBG_TRACE,"unchanged '%s'",st->state);
-        res=0;
     }
     snprintf(st->state,BUFFER_LENGTH-1,"%s",data);
     st->state[BUFFER_LENGTH-1]='\0';
@@ -85,10 +85,10 @@ int clst_setDataByName(char *client,char *data) {
 }
 
 char *clst_getData(cl_status *st,int format) {
-    // host:state:server:users:load:meminfo
-    char *csv_template ="%s:%s:%s:%s:%s:%s"; // notice no end of line
-    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\"}";
-    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo></client>";
+    // host:state:server:users:load:meminfo:model
+    char *csv_template ="%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
+    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\"}";
+    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model></client>";
     int nelem=0;
 
     char *result=calloc(BUFFER_LENGTH,sizeof(char));
@@ -101,8 +101,22 @@ char *clst_getData(cl_status *st,int format) {
         case 2: /* xml; do not add header */ templ=xml_template; break;
     }
     // compatibility with old clients:
-    if (nelem==6)  snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5]);
-    else snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0");
+    switch(nelem) {
+        case 3:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],"1",tokens[1],tokens[2],"0.0 / 0.0 / 0.0","0 / 0","-");
+            break;
+        case 4:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0","-");
+            break;
+        case 6:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],"-");
+            break;
+        case 7:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6]);
+            break;
+        default:
+            debug(DBG_ERROR,"Invalid number of tokens (%d) in stored data '%s'",nelem,st->state);
+    }
     free_tokens(tokens);
     return result;
 }
@@ -171,11 +185,11 @@ int clst_expireData(){
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
-        if (strpos (pt->state,":0:-:-")>0) continue; // already expired
+        if (strpos (pt->state,":0:-:-")>0) continue; // already expired ( only check state,server,users )
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-");
         count++;
     }
     // on change notify websockets

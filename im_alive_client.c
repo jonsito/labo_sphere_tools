@@ -19,7 +19,6 @@
 #include <utmpx.h>
 #include <netdb.h>
 #include <signal.h>
-#include <time.h>
 #include <errno.h>
 
 #include "im_alive.h"
@@ -110,6 +109,33 @@ long getUptime() {
     close(fd);
     return (long) uptime_secs;
 #endif
+}
+
+char *getComputerModel() {
+    static char buffer[32];
+    memset(buffer,0,sizeof(buffer));
+#ifdef __APPLE__
+    size_t len = 0;
+    sysctlbyname("hw.model", buffer, &len, NULL, 0);
+    if (!len) {
+        debug(DBG_ERROR,"cannot retrieve hardware model");
+        snprintf(buffer,32,"Mac-unknown");
+    }
+#else
+    FILE *fp=popen("dmidecode -s system-product-name", "r");
+    if (fp == NULL) {
+        debug(DBG_ERROR,"cannot retrieve (dmidecode) hardware model");
+        snprintf(buffer,32,"PC-unknown");
+    }
+    /* Read the output a line at a time - output it. */
+    if (! fgets(buffer, sizeof(buffer), fp)) {
+        debug(DBG_ERROR,"Dmidecode returns no Product Name info");
+        snprintf(buffer,32,"PC-unknown");
+    }
+    /* close */
+    pclose(fp);
+#endif
+    return buffer;
 }
 
 char *getLoad() {
@@ -272,9 +298,15 @@ int main(int argc, char *argv[]) {
 
     // extract client host name
     char hostname[100];
+    memset(hostname,0,sizeof(hostname));
     gethostname(hostname,100);
     dot=strchr(hostname,'.');
     if (dot) *dot='\0'; // remove FQDN part if any on hostname
+
+    // retrieve computer model
+    char computermodel[100];
+    memset(computermodel,0,sizeof(computermodel));
+    snprintf(computermodel,sizeof(computermodel),"%s",getComputerModel());
 
     char* data_to_send = calloc(BUFFER_LENGTH,sizeof(char));
     char* response = calloc(BUFFER_LENGTH,sizeof(char));
@@ -307,7 +339,15 @@ int main(int argc, char *argv[]) {
     while (myConfig.loop) {
         // compose string to be sent
         // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s",hostname,getUptime(),binario,getUsers(),getLoad(),getMemInfo());
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s",
+                 hostname,
+                 getUptime(),
+                 binario,
+                 getUsers(),
+                 getLoad(),
+                 getMemInfo(),
+                 computermodel
+                 );
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
         sendto(sock, data_to_send, strlen(data_to_send), 0,(struct sockaddr*)&server_address, sizeof(server_address));
