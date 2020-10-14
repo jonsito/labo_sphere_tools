@@ -197,10 +197,9 @@ static int clst_accountData() {
                 state[0]++;
                 // eval number of users
                 if (strcmp(tokens[3],"-")!=0){
-                    state[2]++;
-                    for (char *c=&tokens[3][0];*c;c++) if (*c==',') state[2]++;
+                    users[0]++;
+                    for (char *c=&tokens[3][0];*c;c++) if (*c==',') users[0]++;
                 }
-                users[0]+=state[2]; // eval total user count
                 // on active host, evaluate servers
                 switch(tokens[2][strlen(tokens[2])-1]) {
                     case '1': servers[0]++; break; // binario 1
