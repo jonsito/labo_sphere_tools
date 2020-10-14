@@ -187,6 +187,7 @@ static int clst_accountData() {
     for (int n=50;n<NUM_CLIENTS;n++) { //l000 has global data l001-l049 unused
         cl_status *pt=&status[n];
         debug(DBG_TRACE,"accounting entry '%s'",pt->state);
+        // host:state:server:users:load:meminfo:model
         char **tokens=tokenize(pt->state,':',&toklen);
         state[4]++; // increase total host count
         switch(signature(atoi(tokens[1]))) { // eval on/of/unknown
@@ -201,7 +202,7 @@ static int clst_accountData() {
                 }
                 users[0]+=state[2]; // eval total user count
                 // on active host, evaluate servers
-                switch(tokens[2][strlen(tokens[2]-1)]) {
+                switch(tokens[2][strlen(tokens[2])-1]) {
                     case '1': servers[0]++; break; // binario 1
                     case '2': servers[1]++; break; // binario 2
                     case '3': servers[2]++; break; // binario 3
@@ -213,7 +214,7 @@ static int clst_accountData() {
         free_tokens(tokens);
     }
     // eval users/hosts percentaje
-    users[1]=(100*users[1])/state[4];
+    users[1]=(100*users[0])/state[4];
     // store evaluated data into 'l000' host slot
     // host:state:server:users:load:meminfo:model
     snprintf(status[0].state,BUFFER_LENGTH,"l000:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-:-",
