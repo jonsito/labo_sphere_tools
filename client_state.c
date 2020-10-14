@@ -216,10 +216,11 @@ static int clst_accountData() {
     users[1]=(100*users[1])/state[4];
     // store evaluated data into 'l000' host slot
     // host:state:server:users:load:meminfo:model
-    snprintf(status[0].state,BUFFER_LENGTH,"l000:-1:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-",
+    snprintf(status[0].state,BUFFER_LENGTH,"l000:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-:-",
              state[0],state[1],state[2],state[3],state[4],
              servers[0],servers[1],servers[2],servers[3],servers[4],
              users[0],users[1]
+             // load, meminfo, model goes to defaults
              );
     // notify websockets to get available data
     ws_dataAvailable();
@@ -229,7 +230,7 @@ static int clst_accountData() {
 int clst_expireData(){
     int count=0;
     time_t current=time(NULL);
-    // l000 is used for global data
+    // l000 is used for global data. state field cannot be parsed by expire
     // l001-l059 are used for virtual clients running in acceso.lab
     for (int n=50;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
