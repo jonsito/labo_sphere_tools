@@ -26,7 +26,9 @@ int clst_initData(void){
         // users => name[[,name]...]
         // load => 1min/5min/15min
         // meminfo => total/free
-        snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
+        if (n==0) // special case for l000
+            snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:0/0/0/0/0:/0/0/0/0/0:/0/0:0.0 / 0.0 / 0.0:0 / 0:-",n);
+        else snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -197,8 +199,9 @@ static int clst_accountData() {
                 state[0]++;
                 // eval number of users
                 if (strcmp(tokens[3],"-")!=0){
-                    users[0]++;
-                    for (char *c=&tokens[3][0];*c;c++) if (*c==',') users[0]++;
+                    state[2]++; // add busy count
+                    users[0]++; // at least 1 user
+                    for (char *c=&tokens[3][0];*c;c++) if (*c==',') users[0]++; // add same users as comma separators
                 }
                 // on active host, evaluate servers
                 switch(tokens[2][strlen(tokens[2])-1]) {
