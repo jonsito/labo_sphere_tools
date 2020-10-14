@@ -7,6 +7,7 @@
 
 #include<stdio.h>
 
+#define signature(a) ((a)<0)?-1:(((a)>0)?1:0)
 
 typedef struct node_st {
     void *data;

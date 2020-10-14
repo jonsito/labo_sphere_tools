@@ -179,10 +179,59 @@ char *clst_getList(int cl_from,int cl_to, int format) {
     return result;
 }
 
+static int clst_accountData() {
+    int state[5]={0,0,0,0,0}; // on off busy unknown total
+    int servers[5]={0,0,0,0,0}; // binario1..4 mac
+    int users[2]={0,0}; // users percent
+    int toklen=0;
+    for (int n=50;n<NUM_CLIENTS;n++) { //l000 has global data l001-l049 unused
+        cl_status *pt=&status[n];
+        debug(DBG_TRACE,"accounting entry '%s'",pt->state);
+        char **tokens=tokenize(pt->state,':',&toklen);
+        state[4]++; // increase total host count
+        switch(signature(atoi(tokens[1]))) { // eval on/of/unknown
+            case -1: state[3]++; break; //unknown
+            case 0: state[1]++; break; // off
+            case 1: // on
+                state[0]++;
+                // eval number of users
+                if (strcmp(tokens[3],"-")!=0){
+                    state[2]++;
+                    for (char *c=&tokens[3][0];*c;c++) if (*c==',') state[2]++;
+                }
+                users[0]+=state[2]; // eval total user count
+                // on active host, evaluate servers
+                switch(tokens[2][strlen(tokens[2]-1)]) {
+                    case '1': servers[0]++; break; // binario 1
+                    case '2': servers[1]++; break; // binario 2
+                    case '3': servers[2]++; break; // binario 3
+                    case '4': servers[3]++; break; // binario 4
+                    case '-': servers[4]++; break; // mac
+                }
+                break;
+        }
+        free_tokens(tokens);
+    }
+    // eval users/hosts percentaje
+    users[1]=(100*users[1])/state[4];
+    // store evaluated data into 'l000' host slot
+    // host:state:server:users:load:meminfo:model
+    snprintf(status[0].state,BUFFER_LENGTH,"l000:-1:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-",
+             state[0],state[1],state[2],state[3],state[4],
+             servers[0],servers[1],servers[2],servers[3],servers[4],
+             users[0],users[1]
+             );
+    // notify websockets to get available data
+    ws_dataAvailable();
+    return state[4]; // number of entries parsed
+}
+
 int clst_expireData(){
     int count=0;
     time_t current=time(NULL);
-    for (int n=0;n<NUM_CLIENTS;n++) {
+    // l000 is used for global data
+    // l001-l059 are used for virtual clients running in acceso.lab
+    for (int n=50;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
         if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
         if (strpos (pt->state,":0:-:-")>0) continue; // already expired ( only check state,server,users )
@@ -241,7 +290,9 @@ void init_expireThread() {
     // enter loop
     while( myConfig->loop )	{
         clst_expireData();
-        sleep(EXPIRE_TIME);
+        sleep(EXPIRE_TIME/2);
+        clst_accountData();
+        sleep(EXPIRE_TIME/2);
     }
 }
 
