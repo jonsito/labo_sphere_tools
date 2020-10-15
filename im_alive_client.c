@@ -5,7 +5,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/param.h>
-#include <sys/types.h>
 #ifdef __APPLE__
 #include <sys/sysctl.h>
 #include <mach/vm_statistics.h>
@@ -13,6 +12,7 @@
 #include <mach/mach_init.h>
 #include <mach/mach_host.h>
 #else
+#include <sys/types.h>
 #include <sys/sysinfo.h>
 #endif
 #include <unistd.h>
@@ -112,26 +112,31 @@ long getUptime() {
 }
 
 char *getComputerModel() {
-    static char buffer[32];
+    static char buffer[64];
     memset(buffer,0,sizeof(buffer));
 #ifdef __APPLE__
     size_t len = 0;
-    int res=sysctlbyname("hw.model", buffer, &len, NULL, 0);
-    if (res<0) {
+    int mib[2]={CTL_HW,HW_MODEL};
+    // according to doc need first to eval length
+    sysctl(mib,2, NULL, &len, NULL, 0);
+    if ((len==0)||(len>63)) {
         debug(DBG_ERROR,"cannot retrieve hardware model");
-        snprintf(buffer,32,"Mac-unknown");
+        snprintf(buffer,63,"Mac-unknown");
+    } else {
+        // and then get data
+        sysctl(mib,2, buffer, &len, NULL, 0);
     }
 #else
     FILE *fp=popen("dmidecode -s system-product-name", "r");
     if (fp == NULL) {
         debug(DBG_ERROR,"cannot retrieve (dmidecode) hardware model");
-        snprintf(buffer,32,"PC-unknown");
+        snprintf(buffer,63,"PC-unknown");
         return buffer;
     }
     /* Read the output a line at a time - output it. */
     if (! fgets(buffer, sizeof(buffer), fp)) {
         debug(DBG_ERROR,"Dmidecode returns no Product Name info");
-        snprintf(buffer,32,"PC-unknown");
+        snprintf(buffer,63,"PC-unknown");
     }
     /* close */
     pclose(fp);
@@ -171,7 +176,7 @@ char *getMemInfo() {
     mach_port_t mach_port;
     mach_msg_type_number_t count;
     vm_statistics64_data_t vm_stats;
-    long long free_memory=0;
+    // long long free_memory=0;
     long long used_memory=0;
 
     mach_port = mach_host_self();
