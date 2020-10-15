@@ -141,6 +141,9 @@ int main(int argc, char *argv[]) {
                 debug(DBG_ERROR,"fork");
                 return 1;
             case 0: // child
+                fclose(stdin);
+                fclose(stdout);
+                fclose(stderr);
                 setsid();
                 break;
             default: // parent
@@ -149,8 +152,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // create pid file
+    pid_t pid=getpid();
+    FILE *fp=fopen("/var/run/ImAlive_server.pid","w");
+    if (!fp) debug(DBG_ALERT,"Cannot create pid file %d",pid);
+    else { fprintf(fp,"%d",pid); fclose(fp); }
+
     // initialize status table data
     clst_initData();
+
     // fireup expire thread
     sc_thread_slot *exp_slot=sc_thread_create(expire_th_name,myConfig,init_expireThread);
     if (!exp_slot) {
@@ -210,7 +220,9 @@ int main(int argc, char *argv[]) {
             sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address, sizeof(client_address));
         }
     }
-
+    // clean data
     clst_freeData();
+    // remove pid file and exit
+    unlink("/var/run/ImAlive_client.pid");
     return 0;
 }

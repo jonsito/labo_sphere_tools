@@ -336,6 +336,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // create pid file
+    pid_t pid=getpid();
+    FILE *fp=fopen("/var/run/ImAlive_client.pid","w");
+    if (!fp) debug(DBG_ALERT,"Cannot create pid file %d",pid);
+    else { fprintf(fp,"%d",pid); fclose(fp); }
+
     // enter loop. exit on kill or SIGTERM
     while (myConfig.loop) {
         // compose string to be sent
@@ -364,5 +370,7 @@ int main(int argc, char *argv[]) {
     }
     // close the socket
     close(sock);
+    // remove pid file and exit
+    unlink("/var/run/ImAlive_client.pid");
     return 0;
 }
