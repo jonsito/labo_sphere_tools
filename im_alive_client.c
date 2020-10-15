@@ -116,8 +116,8 @@ char *getComputerModel() {
     memset(buffer,0,sizeof(buffer));
 #ifdef __APPLE__
     size_t len = 0;
-    sysctlbyname("hw.model", buffer, &len, NULL, 0);
-    if (!len) {
+    int res=sysctlbyname("hw.model", buffer, &len, NULL, 0);
+    if (res<0) {
         debug(DBG_ERROR,"cannot retrieve hardware model");
         snprintf(buffer,32,"Mac-unknown");
     }
