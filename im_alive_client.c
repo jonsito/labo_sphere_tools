@@ -1,9 +1,7 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <net/if.h>
@@ -31,7 +29,6 @@
 #include "debug.h"
 
 struct interface {
-    int     index;
     int     flags;      /* IFF_UP etc. */
     long    speed;      /* Mbps; -1 is unknown */
     int     duplex;     /* DUPLEX_FULL, DUPLEX_HALF, or unknown */
@@ -126,26 +123,31 @@ long getUptime() {
 }
 
 char *getComputerModel() {
-    static char buffer[32];
+    static char buffer[64];
     memset(buffer,0,sizeof(buffer));
 #ifdef __APPLE__
     size_t len = 0;
-    sysctlbyname("hw.model", buffer, &len, NULL, 0);
-    if (!len) {
+    int mib[2]={CTL_HW,HW_MODEL};
+    // according to doc need first to eval length
+    sysctl(mib,2, NULL, &len, NULL, 0);
+    if ((len==0)||(len>63)) {
         debug(DBG_ERROR,"cannot retrieve hardware model");
-        snprintf(buffer,32,"Mac-unknown");
+        snprintf(buffer,63,"Mac-unknown");
+    } else {
+        // and then get data
+        sysctl(mib,2, buffer, &len, NULL, 0);
     }
 #else
     FILE *fp=popen("dmidecode -s system-product-name", "r");
     if (fp == NULL) {
         debug(DBG_ERROR,"cannot retrieve (dmidecode) hardware model");
-        snprintf(buffer,32,"PC-unknown");
+        snprintf(buffer,63,"PC-unknown");
         return buffer;
     }
     /* Read the output a line at a time - output it. */
     if (! fgets(buffer, sizeof(buffer), fp)) {
         debug(DBG_ERROR,"Dmidecode returns no Product Name info");
-        snprintf(buffer,32,"PC-unknown");
+        snprintf(buffer,63,"PC-unknown");
     }
     /* close */
     pclose(fp);
@@ -202,7 +204,6 @@ char *getIfStatus() {
             sprintf(buffer,"-");
             return buffer;
         }
-        iface.index = index;
         strncpy(iface.name, ifr.ifr_name, IF_NAMESIZE);
         iface.name[IF_NAMESIZE] = '\0';
 
@@ -264,7 +265,7 @@ char *getMemInfo() {
     mach_port_t mach_port;
     mach_msg_type_number_t count;
     vm_statistics64_data_t vm_stats;
-    long long free_memory=0;
+    // long long free_memory=0;
     long long used_memory=0;
 
     mach_port = mach_host_self();
