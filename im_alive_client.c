@@ -1,9 +1,13 @@
-#include <arpa/inet.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/ip.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #ifdef __APPLE__
@@ -13,6 +17,8 @@
 #include <mach/mach_init.h>
 #include <mach/mach_host.h>
 #else
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
 #include <sys/sysinfo.h>
 #endif
 #include <unistd.h>
@@ -23,6 +29,14 @@
 
 #include "im_alive.h"
 #include "debug.h"
+
+struct interface {
+    int     index;
+    int     flags;      /* IFF_UP etc. */
+    long    speed;      /* Mbps; -1 is unknown */
+    int     duplex;     /* DUPLEX_FULL, DUPLEX_HALF, or unknown */
+    char    name[IF_NAMESIZE + 1];
+};
 
 configuration myConfig;
 
@@ -138,6 +152,85 @@ char *getComputerModel() {
 #endif
     return buffer;
 }
+
+#ifdef __APPLE__
+char *getIfStatus() {
+    debug(DBG_INFO,"Cannot evaluate network parameters in Mac-OSX");
+    return "-";
+}
+#else
+static int get_interface_common(const int fd, struct ifreq *const ifr, struct interface *const info) {
+    struct ethtool_cmd  cmd;
+    int                 result;
+    /* Interface flags. */
+    if (ioctl(fd, SIOCGIFFLAGS, ifr) == -1) info->flags = 0;
+    else info->flags = ifr->ifr_flags;
+    /* "Get interface settings" */
+    ifr->ifr_data = (void *)&cmd;
+    cmd.cmd = ETHTOOL_GSET;
+    if (ioctl(fd, SIOCETHTOOL, ifr) == -1) { // ioctl failed: set parameters to unknown
+        info->speed = -1L;
+        info->duplex = DUPLEX_UNKNOWN;
+    } else { // ioctl success: set parameters
+        info->speed = ethtool_cmd_speed(&cmd);
+        info->duplex = cmd.duplex;
+    }
+    // try to close socket
+    do { result = close(fd); } while (result == -1 && errno == EINTR);
+    if (result == -1) return errno;
+    return 0;
+}
+
+char *getIfStatus() {
+    static char buffer[32]; // where result is stored
+    struct interface iface;
+    struct ifreq ifr;
+    int result;
+    // creamos un socket para ir buscando interfaces
+    int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (socketfd == -1) {
+        debug(DBG_ERROR,"Cannot create socket to iterate interfaces");
+        sprintf(buffer,"-");
+        return buffer;
+    }
+    for (int index = 1; ; index++) { // buscamos el interface con indice index
+        ifr.ifr_ifindex = index;
+        if (ioctl(socketfd, SIOCGIFNAME, &ifr) == -1) { // search interface at index "index"
+            // arriving here means that there are no more interfaces
+            do { result = close(socketfd); } while (result == -1 && errno == EINTR);
+            debug(DBG_ERROR,"Cannot find more interfaces. index:%d",index);
+            sprintf(buffer,"-");
+            return buffer;
+        }
+        iface.index = index;
+        strncpy(iface.name, ifr.ifr_name, IF_NAMESIZE);
+        iface.name[IF_NAMESIZE] = '\0';
+
+        // si no tiene la ip que buscamos, continuamos la busqueda
+
+        // obtenemos datos y cerramos socket
+        result=get_interface_common(socketfd, &ifr, &iface);
+        if (result!=0) {
+            debug(DBG_ERROR,"Cannot get interface data '%s'",iface.name);
+            sprintf(buffer,"%s: ? Mbps ? duplex",iface.name);
+            return buffer;
+        }
+        // ok: evaluamos velocidad, modo y retornamos valores
+        sprintf(buffer,"%s:%s %ld Mbps %s duplex",
+                iface.name,
+                (iface.flags & IFF_UP)? " up":"",
+                (iface.speed > 0)? iface.speed:0,
+                (iface.duplex == DUPLEX_FULL)? "full": ((iface.duplex == DUPLEX_HALF)?"half":"?")
+                );
+        debug(DBG_INFO,"Interface index: %d status %s",index,buffer);
+        return buffer;
+    }
+    // arriving here means error. should never happen
+    debug(DBG_ALERT,"Cannot locate any network interface !!!");
+    sprintf(buffer,"-");
+    return buffer;
+}
+#endif
 
 char *getLoad() {
     static char buffer[32];
