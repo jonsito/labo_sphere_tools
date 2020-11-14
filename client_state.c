@@ -27,8 +27,8 @@ int clst_initData(void){
         // load => 1min/5min/15min
         // meminfo => total/free
         if (n==0) // special case for l000
-            snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:0/0/0/0/0:/0/0/0/0/0:/0/0:0.0 / 0.0 / 0.0:0 / 0:-",n);
-        else snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
+            snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:0/0/0/0/0:/0/0/0/0/0:/0/0:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
+        else snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -43,7 +43,7 @@ int clst_freeData(){
         // check only (uptime/server/users) part
         if (strstr(pt->state,":-1:-:-:")>=0) count++; // not yet initialized
         if (strstr(pt->state,":0:-:-:")>=0) count++; // already clean
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0:-",n);
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
     }
     return count;
 }
@@ -88,9 +88,9 @@ int clst_setDataByName(char *client,char *data) {
 
 char *clst_getData(cl_status *st,int format) {
     // host:state:server:users:load:meminfo:model
-    char *csv_template ="%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
-    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\"}";
-    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model></client>";
+    char *csv_template ="%s:%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
+    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\",\"network\":\"%s\"}";
+    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model><network>%s</network></client>";
     int nelem=0;
 
     char *result=calloc(BUFFER_LENGTH,sizeof(char));
@@ -105,16 +105,19 @@ char *clst_getData(cl_status *st,int format) {
     // compatibility with old clients:
     switch(nelem) {
         case 3:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],"1",tokens[1],tokens[2],"0.0 / 0.0 / 0.0","0 / 0","-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],"1",tokens[1],tokens[2],"0.0 / 0.0 / 0.0","0 / 0","-","-");
             break;
         case 4:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0","-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0","-","-");
             break;
         case 6:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],"-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],"-","-");
             break;
         case 7:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6]);
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],"-");
+            break;
+        case 8:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7]);
             break;
         default:
             debug(DBG_ERROR,"Invalid number of tokens (%d) in stored data '%s'",nelem,st->state);
@@ -218,12 +221,12 @@ static int clst_accountData() {
     // eval users/hosts percentaje
     users[1]=(100*users[0])/state[4];
     // store evaluated data into 'l000' host slot
-    // host:state:server:users:load:meminfo:model
-    snprintf(status[0].state,BUFFER_LENGTH,"l000:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-:-",
+    // host:state:server:users:load:meminfo:model:network
+    snprintf(status[0].state,BUFFER_LENGTH,"l000:%d/%d/%d/%d/%d:%d/%d/%d/%d/%d:%d/%d:-:-:-:-",
              state[0],state[1],state[2],state[3],state[4],
              servers[0],servers[1],servers[2],servers[3],servers[4],
              users[0],users[1]
-             // load, meminfo, model goes to defaults
+             // load, meminfo, model,and network goes to defaults
              );
     // notify websockets to get available data
     ws_dataAvailable();
@@ -242,7 +245,7 @@ int clst_expireData(){
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-:-:-:-");
         count++;
     }
     // on change notify websockets

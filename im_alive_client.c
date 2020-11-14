@@ -440,14 +440,15 @@ int main(int argc, char *argv[]) {
     while (myConfig.loop) {
         // compose string to be sent
         // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s",
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s:%s",
                  hostname,
                  getUptime(),
                  binario,
                  getUsers(),
                  getLoad(),
                  getMemInfo(),
-                 computermodel
+                 computermodel,
+                 getIfStatus()
                  );
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
