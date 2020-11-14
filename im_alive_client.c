@@ -184,7 +184,7 @@ static int get_interface_common(const int fd, struct ifreq *const ifr, struct in
 }
 
 char *getIfStatus() {
-    static char buffer[32]; // where result is stored
+    static char buffer[48]; // where result is stored
     struct interface iface;
     struct ifreq ifr;
     int result;
@@ -192,7 +192,7 @@ char *getIfStatus() {
     int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
     if (socketfd == -1) {
         debug(DBG_ERROR,"Cannot create socket to iterate interfaces");
-        sprintf(buffer,"-");
+        snprintf(buffer,sizeof(buffer),"-");
         return buffer;
     }
     for (int index = 1; ; index++) { // buscamos el interface con indice index
@@ -201,7 +201,7 @@ char *getIfStatus() {
             // arriving here means that there are no more interfaces
             do { result = close(socketfd); } while (result == -1 && errno == EINTR);
             debug(DBG_ERROR,"Cannot find more interfaces. index:%d",index);
-            sprintf(buffer,"-");
+            snprintf(buffer,sizeof(buffer),"-");
             return buffer;
         }
         strncpy(iface.name, ifr.ifr_name, IF_NAMESIZE);
@@ -213,11 +213,11 @@ char *getIfStatus() {
         result=get_interface_common(socketfd, &ifr, &iface);
         if (result!=0) {
             debug(DBG_ERROR,"Cannot get interface data '%s'",iface.name);
-            sprintf(buffer,"%s: ? Mbps ? duplex",iface.name);
+            snprintf(buffer,sizeof(buffer),"%s: ? Mbps ? duplex",iface.name);
             return buffer;
         }
         // ok: evaluamos velocidad, modo y retornamos valores
-        sprintf(buffer,"%s:%s %ld Mbps %s duplex",
+        snprintf(buffer,sizeof(buffer),"%s:%s %ld Mbps %s duplex",
                 iface.name,
                 (iface.flags & IFF_UP)? " up":"",
                 (iface.speed > 0)? iface.speed:0,
