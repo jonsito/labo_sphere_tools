@@ -152,6 +152,8 @@ char *getComputerModel() {
     }
     /* close */
     pclose(fp);
+    // dmidecode returns data ending with '\n', so remove it
+    buffer[strlen(buffer)-1]='\0';
 #endif
     return buffer;
 }
