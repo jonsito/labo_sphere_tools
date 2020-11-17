@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
+#include <arpa/inet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
@@ -208,16 +209,18 @@ char *getIfStatus() {
         iface.name[IF_NAMESIZE] = '\0';
 
         // si no tiene la ip que buscamos, continuamos la busqueda
+        ioctl(socketfd, SIOCGIFADDR, &ifr);
+        if (!strstr(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr),"138.4.3")) continue;
 
         // obtenemos datos y cerramos socket
         result=get_interface_common(socketfd, &ifr, &iface);
         if (result!=0) {
             debug(DBG_ERROR,"Cannot get interface data '%s'",iface.name);
-            snprintf(buffer,sizeof(buffer),"%s: ? Mbps ? duplex",iface.name);
+            snprintf(buffer,sizeof(buffer),"%s ? Mbps ? duplex",iface.name);
             return buffer;
         }
         // ok: evaluamos velocidad, modo y retornamos valores
-        snprintf(buffer,sizeof(buffer),"%s:%s %ld Mbps %s duplex",
+        snprintf(buffer,sizeof(buffer),"%s%s %ld Mbps %s duplex",
                 iface.name,
                 (iface.flags & IFF_UP)? " up":"",
                 (iface.speed > 0)? iface.speed:0,
