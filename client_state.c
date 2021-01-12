@@ -87,7 +87,7 @@ int clst_setDataByName(char *client,char *data) {
 }
 
 char *clst_getData(cl_status *st,int format) {
-    // host:state:server:users:load:meminfo:model
+    // host:state:server:users:load:meminfo:model:network
     char *csv_template ="%s:%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
     char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\",\"network\":\"%s\"}";
     char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model><network>%s</network></client>";
@@ -192,7 +192,7 @@ static int clst_accountData() {
     for (int n=50;n<NUM_CLIENTS;n++) { //l000 has global data l001-l049 unused
         cl_status *pt=&status[n];
         debug(DBG_TRACE,"accounting entry '%s'",pt->state);
-        // host:state:server:users:load:meminfo:model
+        // host:state:server:users:load:meminfo:model:network
         char **tokens=tokenize(pt->state,':',&toklen);
         state[4]++; // increase total host count
         switch(signature(atoi(tokens[1]))) { // eval on/of/unknown
@@ -245,7 +245,8 @@ int clst_expireData(){
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-:-:-:-");
+        // host:state:server:users:load:meminfo:model:network
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-:-:-");
         count++;
     }
     // on change notify websockets
