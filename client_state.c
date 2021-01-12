@@ -21,7 +21,7 @@ int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        // host:state:server:users:load:meminfo
+        // host:state:server:users:load:meminfo:model:network
         // host => -1:indeterminate 0:off 1:on >1:uptime
         // users => name[[,name]...]
         // load => 1min/5min/15min
@@ -246,7 +246,7 @@ int clst_expireData(){
         // expired. set state to "off". Notice reuse of current buffer.
         char *c=strchr(pt->state,':');
         // host:state:server:users:load:meminfo:model:network
-        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-:-:-");
+        snprintf(c,BUFFER_LENGTH - ( c - pt->state),":0:-:-:0.0 / 0.0 /0.0:0 / 0:-:-");
         count++;
     }
     // on change notify websockets
