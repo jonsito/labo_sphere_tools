@@ -354,7 +354,7 @@ static int usage(char *progname) {
 
 static int parse_cmdline(configuration *config,int argc, char *argv[]) {
     int option;
-    while ((option = getopt(argc, argv,"h:w:p:l:f:t:dv")) != -1) {
+    while ((option = getopt(argc, argv,"c:h:w:p:l:f:t:dv")) != -1) {
         switch (option) {
             case 'c' : config->client_host = strdup(optarg);     break;
             case 'h' : config->server_host = strdup(optarg);     break;
