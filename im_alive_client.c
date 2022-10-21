@@ -87,20 +87,20 @@ char * getUsers() {
             // insert into list if not already inserted
             if (!strstr(buff,&n->ut_user[0])) {
                 // look for access type (G)raphics,(C)console,(R)remote,(S)sh
-                if (strlen(n->ut_host)==0) snprintf(where,6,"(tty)"); // tty console
-                else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(Rem)"); // XVnc
-                else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(Con)"); // Console
-                else snprintf(where,6,"(Ssh)"); // remote ssh access
+                if (strlen(n->ut_host)==0) snprintf(where,6,"(txt)"); // tty console
+                else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(rem)"); // XVnc
+                else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(con)"); // Console
+                else snprintf(where,6,"(ssh)"); // remote ssh access
                 size_t len=strlen(buff);
-                snprintf(buff+len,1000-len,",%s%s",n->ut_user,where);
+                snprintf(buff+len,1000-len,",%s %s",n->ut_user,where);
             }
         }
         n=getutxent();
     }
     endutxent();
     if (*buff=='\0') return "-";
-    // remove first comma and return
-    return buff+1;
+    // notice that browser will translate "," to "<br/> on returning text, so don't skip first comma
+    return buff;
 }
 
 // call to uptime. return number of seconds from client start
@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
     memset(&server_address, 0, sizeof(server_address));
     memcpy((void *)&server_address.sin_addr, ent->h_addr_list[0], ent->h_length);
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(SERVER_UDPPORT);
+    server_address.sin_port = htons(myConfig.server_udpport);
 
     // open socket
     int sock = socket(PF_INET, SOCK_DGRAM, 0);

@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 
     // htons: host to network short: transforms a value in host byte
     // ordering format to a short value in network byte ordering format
-    server_address.sin_port = htons(SERVER_UDPPORT);
+    server_address.sin_port = htons(myConfig->server_udpport);
 
     // htons: host to network long: same as htons but to long
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);

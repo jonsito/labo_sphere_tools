@@ -14,8 +14,10 @@
 #include "debug.h"
 #include "tools.h"
 #include "wsserver.h"
+#include "im_alive.h"
 
 static cl_status status[NUM_CLIENTS];
+extern configuration *myConfig;
 
 int clst_initData(void){
     time_t t=time(NULL);
@@ -240,7 +242,7 @@ int clst_expireData(){
     // l001-l059 are used for virtual clients running in acceso.lab
     for (int n=50;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        if ( (current - pt->timestamp) < EXPIRE_TIME ) continue;
+        if ( (current - pt->timestamp) < myConfig->expire ) continue;
         if (strpos (pt->state,":0:-:-")>0) continue; // already expired ( only check state,server,users )
         debug(DBG_TRACE,"Expiring entry '%s'",pt->state);
         // expired. set state to "off". Notice reuse of current buffer.
@@ -298,9 +300,9 @@ void init_expireThread() {
     // enter loop
     while( myConfig->loop )	{
         clst_expireData();
-        sleep(EXPIRE_TIME/2);
+        sleep(myConfig->expire/2);
         clst_accountData();
-        sleep(EXPIRE_TIME/2);
+        sleep(myConfig->expire/2);
     }
 }
 
