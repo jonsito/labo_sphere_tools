@@ -48,16 +48,23 @@ static void sig_handler(int sig) {
 }
 
 char *getServer() {
-  struct hostent *ent;
-  sethostent(0);
-  while ( (ent=gethostent()) ) {
-      if (strcmp(ent->h_name,BINARIO)!=0) continue;
-      endhostent();
-      struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
-      return ent2->h_name;
-  }
-  endhostent();
-  return "-";
+    static char *result=NULL;
+    if (result) return result; // already evaluated
+    struct hostent *ent;
+    sethostent(0);
+    while ( (ent=gethostent()) ) {
+          if (strcmp(ent->h_name,BINARIO)!=0) continue;
+          endhostent();
+          struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
+          char *dot=strchr(ent2->h_name,'.');
+          if (dot) *dot='\0'; // remove FQDN part if any
+          result=calloc(1+strlen(ent2->h_name),sizeof(char));
+          strncpy(result,ent2->h_name,strlen(ent2->h_name));
+          return result;
+    }
+    endhostent();
+    result="-";
+    return result;
 }
 
 /*
@@ -67,21 +74,30 @@ char *getServer() {
 
 /* from https://stackoverflow.com/questions/31472040/program-to-display-all-logged-in-users-via-c-program-on-ubuntu */
 char * getUsers() {
+    static char *buff=NULL;
     struct utmpx *n;
+    char where[6];
+    if (!buff) buff=calloc(1024,sizeof(char));
+    if (!buff) return "-";
+    memset(buff,0,1024);
     setutxent();
     n=getutxent();
-    char *buff=calloc(1000,sizeof(char));
-    if (!buff) return "-";
     while(n) {
         if(n->ut_type==USER_PROCESS) {
             // insert into list if not already inserted
-            if (!strstr(buff,n->ut_user)) {
+            if (!strstr(buff,&n->ut_user[0])) {
+                // look for access type (G)raphics,(C)console,(R)remote,(S)sh
+                if (strlen(n->ut_host)==0) snprintf(where,6,"(tty)"); // tty console
+                else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(Rem)"); // XVnc
+                else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(Con)"); // Console
+                else snprintf(where,6,"(Ssh)"); // remote ssh access
                 size_t len=strlen(buff);
-                snprintf(buff+len,1000-len,",%s",n->ut_user);
+                snprintf(buff+len,1000-len,",%s%s",n->ut_user,where);
             }
         }
         n=getutxent();
     }
+    endutxent();
     if (*buff=='\0') return "-";
     // remove first comma and return
     return buff+1;
@@ -308,9 +324,23 @@ char *getMemInfo() {
 
 #endif
 
+char * getHostName() {
+    if (myConfig.client_host) return myConfig.client_host; // already evaluated
+    // extract client host name
+    char hostname[100];
+    memset(hostname,0,sizeof(hostname));
+    gethostname(hostname,100);
+    char *dot=strchr(hostname,'.');
+    if (dot) *dot='\0'; // remove FQDN part if any on hostname
+    myConfig.client_host=calloc(1+strlen(hostname),sizeof(char));
+    strncpy(myConfig.client_host,hostname,strlen(hostname));
+    return myConfig.client_host;
+}
+
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);
-    fprintf(stderr,"\t -h host      Server host [%s]\n",SERVER_HOST);
+    fprintf(stderr,"\t -c client    Client hostname [auto]");
+    fprintf(stderr,"\t -h host      Server hostname [%s]\n",SERVER_HOST);
     fprintf(stderr,"\t -p port      UDP Server port [%d] \n",SERVER_UDPPORT);
     fprintf(stderr,"\t -w port      WSS Server port [%d] \n",SERVER_WSSPORT);
     fprintf(stderr,"\t -l log_level Set debug/logging level 0:none thru 8:all. [3:error]\n");
@@ -326,6 +356,7 @@ static int parse_cmdline(configuration *config,int argc, char *argv[]) {
     int option;
     while ((option = getopt(argc, argv,"h:w:p:l:f:t:dv")) != -1) {
         switch (option) {
+            case 'c' : config->client_host = strdup(optarg);     break;
             case 'h' : config->server_host = strdup(optarg);     break;
             case 'p' : config->server_udpport = (int)strtol(optarg,NULL,10);break;
             case 'w' : config->server_wssport = (int)strtol(optarg,NULL,10);break;
@@ -391,18 +422,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // extract binario nbd server
-    char *binario=getServer();
-    char *dot=strchr(binario,'.');
-    if (dot) *dot='\0'; // remove FQDN part if any
-
-    // extract client host name
-    char hostname[100];
-    memset(hostname,0,sizeof(hostname));
-    gethostname(hostname,100);
-    dot=strchr(hostname,'.');
-    if (dot) *dot='\0'; // remove FQDN part if any on hostname
-
     // retrieve computer model
     char computermodel[100];
     memset(computermodel,0,sizeof(computermodel));
@@ -446,9 +465,9 @@ int main(int argc, char *argv[]) {
         // compose string to be sent
         // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
         snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s:%s",
-                 hostname,
+                 getHostName(),
                  getUptime(),
-                 binario,
+                 getServer(),
                  getUsers(),
                  getLoad(),
                  getMemInfo(),

@@ -13,6 +13,8 @@
 #define SSL_PRIVATE_KEY_PATH "/etc/ssl/private/acceso.lab.dit.upm.es.llave.pem"
 
 typedef struct configuracion_st {
+    // client name
+    char *client_host;
     // server options
     char *server_host;
     int server_udpport;
