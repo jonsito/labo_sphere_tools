@@ -339,10 +339,10 @@ char * getHostName() {
 
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);
-    fprintf(stderr,"\t -c client    Client hostname [auto]");
+    fprintf(stderr,"\t -c client    Client hostname [auto]\n");
     fprintf(stderr,"\t -h host      Server hostname [%s]\n",SERVER_HOST);
-    fprintf(stderr,"\t -p port      UDP Server port [%d] \n",SERVER_UDPPORT);
-    fprintf(stderr,"\t -w port      WSS Server port [%d] \n",SERVER_WSSPORT);
+    fprintf(stderr,"\t -p port      UDP Server port [%d]\n",SERVER_UDPPORT);
+    fprintf(stderr,"\t -w port      WSS Server port [%d]\n",SERVER_WSSPORT);
     fprintf(stderr,"\t -l log_level Set debug/logging level 0:none thru 8:all. [3:error]\n");
     fprintf(stderr,"\t -f log_file  Set log file [%s]\n",LOG_FILE);
     fprintf(stderr,"\t -t period    Set loop period [%d] (secs)\n",DELAY_LOOP);
