@@ -23,8 +23,8 @@ int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-        // host:state:server:users:load:meminfo:model:network
-        // host => -1:indeterminate 0:off 1:on >1:uptime
+            // host:state:server:users:load:meminfo:model:network
+        // state => -1:indeterminate 0:off 1:on >1:uptime
         // users => name[[,name]...]
         // load => 1min/5min/15min
         // meminfo => total/free
@@ -89,10 +89,11 @@ int clst_setDataByName(char *client,char *data) {
 }
 
 char *clst_getData(cl_status *st,int format) {
-    // host:state:server:users:load:meminfo:model:network
-    char *csv_template ="%s:%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
-    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\",\"network\":\"%s\"}";
-    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model><network>%s</network></client>";
+    // jamc 20221024 added image info
+    // host:state:server:users:load:meminfo:model:network:image
+    char *csv_template ="%s:%s:%s:%s:%s:%s:%s:%s:%s"; // notice no end of line
+    char *json_template = "{\"name\":\"%s\",\"state\":\"%s\",\"server\":\"%s\",\"users\":\"%s\",\"load\":\"%s\",\"meminfo\":\"%s\",\"model\":\"%s\",\"network\":\"%s\",\"image\":\"%s\"}";
+    char *xml_template = "<client name=\"%s\"><state>%s</state><server>%s</server><users>%s</users><load>%s</load><meminfo>%s</meminfo><model>%s</model><network>%s</network><image>%s</image></client>";
     int nelem=0;
 
     char *result=calloc(BUFFER_LENGTH,sizeof(char));
@@ -107,19 +108,22 @@ char *clst_getData(cl_status *st,int format) {
     // compatibility with old clients:
     switch(nelem) {
         case 3:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],"1",tokens[1],tokens[2],"0.0 / 0.0 / 0.0","0 / 0","-","-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],"1",tokens[1],tokens[2],"0.0 / 0.0 / 0.0","0 / 0","-","-","-");
             break;
         case 4:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0","-","-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],"0.0 / 0.0 / 0.0","0 / 0","-","-","-");
             break;
         case 6:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],"-","-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],"-","-","-");
             break;
         case 7:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],"-");
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],"-","-");
             break;
         case 8:
-            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7]);
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],"-");
+            break;
+        case 9:
+            snprintf(result,BUFFER_LENGTH,templ,tokens[0],tokens[1],tokens[2],tokens[3],tokens[4],tokens[5],tokens[6],tokens[7],tokens[8]);
             break;
         default:
             debug(DBG_ERROR,"Invalid number of tokens (%d) in stored data '%s'",nelem,st->state);

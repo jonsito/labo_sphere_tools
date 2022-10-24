@@ -337,6 +337,24 @@ char * getHostName() {
     return myConfig.client_host;
 }
 
+char * getImageName() {
+    if (myConfig.image_name) return myConfig.image_name;
+#ifdef __APPPLE__
+    myConfig.imagename=strdup("MacOSX");
+#else
+    // parse kernel command line to extract image name
+    char *cmdline=calloc(512,sizeof (char));
+    int f=open("/proc/cmdline",O_RDONLY);
+    if (!cmdline || f<0) return "-";
+    read(f,cmdline,511);
+    close(f);
+    if (strstr(cmdline,"FTEL")) myConfig.image_name=strdup("FTEL");
+    else if (strstr(cmdline,"LABDit")) myConfig.image_name=strdup("LABDit");
+    else myConfig.image_name=strdup("-");
+#endif
+    return myConfig.image_name;
+}
+
 static int usage(char *progname) {
     fprintf(stderr,"%s command line options:\n",progname);
     fprintf(stderr,"\t -c client    Client hostname [auto]\n");
@@ -378,6 +396,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in server_address;
 
     // default configuration
+    myConfig.image_name=NULL;
     myConfig.server_host=strdup(SERVER_HOST);
     myConfig.server_udpport=SERVER_UDPPORT;
     myConfig.server_wssport=SERVER_WSSPORT;
@@ -464,7 +483,7 @@ int main(int argc, char *argv[]) {
     while (myConfig.loop) {
         // compose string to be sent
         // snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s",hostname,getUptime(),binario,getUsers());
-        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s:%s",
+        snprintf(data_to_send,BUFFER_LENGTH-1,"%s:%ld:%s:%s:%s:%s:%s:%s:%s",
                  getHostName(),
                  getUptime(),
                  getServer(),
@@ -472,7 +491,8 @@ int main(int argc, char *argv[]) {
                  getLoad(),
                  getMemInfo(),
                  computermodel,
-                 getIfStatus()
+                 getIfStatus(),
+                 getImageName()
                  );
         // send data
         debug(DBG_INFO,"sent: '%s'\n", data_to_send);
