@@ -23,14 +23,14 @@ int clst_initData(void){
     time_t t=time(NULL);
     for (int n=0;n<NUM_CLIENTS;n++) {
         cl_status *pt=&status[n];
-            // host:state:server:users:load:meminfo:model:network
+            // host:state:server:users:load:meminfo:model:network:image
         // state => -1:indeterminate 0:off 1:on >1:uptime
         // users => name[[,name]...]
         // load => 1min/5min/15min
         // meminfo => total/free
         if (n==0) // special case for l000
-            snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:0/0/0/0/0:/0/0/0/0/0:/0/0:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
-        else snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
+            snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:0/0/0/0/0:/0/0/0/0/0:/0/0:0.0 / 0.0 / 0.0:0 / 0:-:-:-",n);
+        else snprintf(pt->state,BUFFER_LENGTH-1,"l%03d:-1:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-:-",n);
         pt->state[BUFFER_LENGTH-1]='\0';
         pt->timestamp=t;
     }
@@ -45,7 +45,7 @@ int clst_freeData(){
         // check only (uptime/server/users) part
         if (strstr(pt->state,":-1:-:-:")>=0) count++; // not yet initialized
         if (strstr(pt->state,":0:-:-:")>=0) count++; // already clean
-        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-",n);
+        snprintf(pt->state,BUFFER_LENGTH,"l%03d:0:-:-:0.0 / 0.0 / 0.0:0 / 0:-:-:-",n);
     }
     return count;
 }
