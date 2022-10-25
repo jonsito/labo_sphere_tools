@@ -53,14 +53,18 @@ char *getServer() {
     struct hostent *ent;
     sethostent(0);
     while ( (ent=gethostent()) ) {
-          if (strcmp(ent->h_name,BINARIO)!=0) continue;
-          endhostent();
-          struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
-          char *dot=strchr(ent2->h_name,'.');
-          if (dot) *dot='\0'; // remove FQDN part if any
-          result=calloc(1+strlen(ent2->h_name),sizeof(char));
-          strncpy(result,ent2->h_name,strlen(ent2->h_name));
-          return result;
+        int flag=0;
+        if (strstr(ent->h_name,"server")) flag=1;
+        if (strstr(ent->h_name,"binario")) flag=1;
+        if (strstr(ent->h_name,"maestro")) flag=1;
+        if (!flag) continue;
+        endhostent();
+        struct hostent *ent2= gethostbyaddr( ent->h_addr_list[0], sizeof(ent->h_addr_list[0]), AF_INET);
+        char *dot=strchr(ent2->h_name,'.');
+        if (dot) *dot='\0'; // remove FQDN part if any
+        result=calloc(1+strlen(ent2->h_name),sizeof(char));
+        strncpy(result,ent2->h_name,strlen(ent2->h_name));
+        return result;
     }
     endhostent();
     result="-";
