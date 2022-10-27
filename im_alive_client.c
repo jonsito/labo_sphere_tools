@@ -62,7 +62,7 @@ char *getServer() {
     char *pt=strstr(cmdline,"138.4.30.5");
     if (pt) {
         // image server is binarioX, evaluate X
-        snprintf(tmpbuf, 15, "binario%c", *pt + 11);
+        snprintf(tmpbuf, 15, "binario%c", *(pt + 10));
         myConfig.binary_host = strdup(tmpbuf);
     } else {
         // image server is not a binary: call gethostbyaddr to retrieve host name
