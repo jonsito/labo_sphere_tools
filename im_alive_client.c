@@ -440,6 +440,7 @@ int main(int argc, char *argv[]) {
 
     // default configuration
     myConfig.image_name=NULL;
+    myConfig.binary_host=NULL;
     myConfig.server_host=strdup(SERVER_HOST);
     myConfig.server_udpport=SERVER_UDPPORT;
     myConfig.server_wssport=SERVER_WSSPORT;
