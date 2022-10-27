@@ -48,6 +48,44 @@ static void sig_handler(int sig) {
 }
 
 char *getServer() {
+    char tmpbuf[16];
+    if (myConfig.binary_host) return myConfig.binary_host;
+#ifdef __APPPLE__
+    myConfig.binary_host=strdup("-");
+#else
+    // parse kernel command line to extract image name
+    char *cmdline=calloc(512,sizeof (char));
+    int f=open("/proc/cmdline",O_RDONLY);
+    if (!cmdline || f<0) return "-";
+    read(f,cmdline,511);
+    close(f);
+    char *pt=strstr(cmdline,"138.4.30.5");
+    if (pt) {
+        // image server is binarioX, evaluate X
+        snprintf(tmpbuf, 15, "binario%c", *pt + 11);
+        myConfig.binary_host = strdup(tmpbuf);
+    } else {
+        // image server is not a binary: call gethostbyaddr to retrieve host name
+        pt=strstr(cmdline,"nbdroot=");
+        if (!pt) {
+            debug(DBG_ERROR,"NBD Server ip not found from kernel command line");
+            myConfig.binary_host=strdup("-");
+        } else {
+            // NOTA: asumimos que la linea está bien formada, pues de lo contrario la maquina no arrancaría
+            char *from=1+strchr(pt,'=');
+            char *strto=strchr(pt,':');
+            if(strto) *strto='\0';
+            // ahora buscamos el hostname asociado a esta ip
+            struct hostent *ent2= gethostbyaddr( from, strlen(from), AF_INET);
+            char *dot=strchr(ent2->h_name,'.');
+            if (dot) *dot='\0'; // remove FQDN part if any
+            myConfig.binary_host=strdup(ent2->h_name);
+        }
+        free(cmdline);
+        return myConfig.binary_host;
+    }
+#endif
+
     static char *result=NULL;
     if (result) return result; // already evaluated
     struct hostent *ent;
@@ -354,6 +392,7 @@ char * getImageName() {
     close(f);
     if (strstr(cmdline,"FTEL")) myConfig.image_name=strdup("FTEL");
     else if (strstr(cmdline,"LABDit")) myConfig.image_name=strdup("LABDit");
+    else if (strstr(cmdline,"OLD")) myConfig.image_name=strdup("Ubuntu-18.04");
     else myConfig.image_name=strdup("-");
 #endif
     return myConfig.image_name;

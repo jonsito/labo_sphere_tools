@@ -18,6 +18,7 @@ typedef struct configuracion_st {
     // client name
     char *client_host;
     // server options
+    char *binary_host;
     char *server_host;
     int server_udpport;
     int server_wssport;
