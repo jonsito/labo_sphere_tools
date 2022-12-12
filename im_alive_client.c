@@ -139,7 +139,7 @@ char * getUsers() {
                 else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(con)"); // Console
                 else snprintf(where,6,"(ssh)"); // remote ssh access
                 size_t len=strlen(buff);
-                snprintf(buff+len,1000-len,",%s %ld %s",n->ut_user,secs,where);
+                snprintf(buff+len,1000-len,",%s %02ldh%02ldm %s",n->ut_user,secs/3600,(secs/60)%60,where);
             }
         }
         n=getutxent();
