@@ -25,6 +25,8 @@
 #include <netdb.h>
 #include <signal.h>
 #include <errno.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "im_alive.h"
 #include "debug.h"
@@ -118,6 +120,7 @@ char *getServer() {
 char * getUsers() {
     static char *buff=NULL;
     struct utmpx *n;
+    time_t to=time(NULL);
     char where[6];
     if (!buff) buff=calloc(1024,sizeof(char));
     if (!buff) return "-";
@@ -128,13 +131,15 @@ char * getUsers() {
         if(n->ut_type==USER_PROCESS) {
             // insert into list if not already inserted
             if (!strstr(buff,&n->ut_user[0])) {
+                // evaluate how many time active
+                time_t secs=to - n->ut_tv.tv_sec;
                 // look for access type (G)raphics,(C)console,(R)remote,(S)sh
                 if (strlen(n->ut_host)==0) snprintf(where,6,"(txt)"); // tty console
                 else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(rem)"); // XVnc
                 else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(con)"); // Console
                 else snprintf(where,6,"(ssh)"); // remote ssh access
                 size_t len=strlen(buff);
-                snprintf(buff+len,1000-len,",%s %s",n->ut_user,where);
+                snprintf(buff+len,1000-len,",%s %ld %s",n->ut_user,secs,where);
             }
         }
         n=getutxent();
