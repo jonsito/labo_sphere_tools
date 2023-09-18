@@ -395,9 +395,11 @@ char * getImageName() {
     if (!cmdline || f<0) return "-";
     read(f,cmdline,511);
     close(f);
-    if (strstr(cmdline,"FTEL")) myConfig.image_name=strdup("FTEL");
-    else if (strstr(cmdline,"LABDit")) myConfig.image_name=strdup("LABDit");
-    else if (strstr(cmdline,"OLD")) myConfig.image_name=strdup("Ubuntu-18.04");
+    if (strstr(cmdline,"FTEL "))     myConfig.image_name=strdup("FTEL");
+    else if (strstr(cmdline,"LAB ")) myConfig.image_name=strdup("LABDit");
+    else if (strstr(cmdline,"UPM ")) myConfig.image_name=strdup("Escritorio UPM");
+    else if (strstr(cmdline,"RDP ")) myConfig.image_name=strdup("Remote Desktop");
+    else if (strstr(cmdline,"OLD ")) myConfig.image_name=strdup("Ubuntu-18.04");
     else myConfig.image_name=strdup("-");
 #endif
     return myConfig.image_name;
