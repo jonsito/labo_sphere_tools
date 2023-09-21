@@ -129,17 +129,22 @@ char * getUsers() {
     n=getutxent();
     while(n) {
         if(n->ut_type==USER_PROCESS) {
+            // remove extra parts from username
+            char *user=strdup(&n->ut_user[0]);
+            char *p=strchr(user,'@');
+            if (p) *p=0;
             // insert into list if not already inserted
-            if (!strstr(buff,&n->ut_user[0])) {
+            // if (!strstr(buff,&n->ut_user[0])) {
+            if (!strstr(buff,user)) {
                 // evaluate how many time active
                 time_t secs=to - n->ut_tv.tv_sec;
                 // look for access type (G)raphics,(C)console,(R)remote,(S)sh
-                if (strlen(n->ut_host)==0) snprintf(where,6,"(txt)"); // tty console
-                else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(rem)"); // XVnc
-                else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(con)"); // Console
-                else snprintf(where,6,"(ssh)"); // remote ssh access
+                if (strlen(n->ut_host)==0) snprintf(where,6,"(txt)"); // tty console (empty host)
+                else if (strstr(&n->ut_host[0],"127")) snprintf(where,6,"(rem)"); // XVnc (127.0.0.1)
+                else if (strstr(&n->ut_host[0],":")) snprintf(where,6,"(con)"); // Console (:2)
+                else snprintf(where,6,"(ssh)"); // remote ssh access (ptyX)
                 size_t len=strlen(buff);
-                snprintf(buff+len,1000-len,",%s %02ldh%02ldm %s",n->ut_user,secs/3600,(secs/60)%60,where);
+                snprintf(buff+len,1000-len,",%s %02ldh%02ldm %s",user,secs/3600,(secs/60)%60,where);
             }
         }
         n=getutxent();

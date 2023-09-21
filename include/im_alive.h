@@ -13,7 +13,7 @@
 #define SSL_PRIVATE_KEY_PATH "/etc/ssl/private/acceso.lab.dit.upm.es.llave.pem"
 
 typedef struct configuracion_st {
-    // image name ("-","Mac","FTEL","LAB" )
+    // image name ("-","Mac","FTEL","LAB","UPM","RDP","OLD" )
     char *image_name;
     // client name
     char *client_host;
