@@ -27,15 +27,15 @@ static int debug_level = 0;
 static FILE *debug_file = NULL;
 static FILE *debug_stderr = NULL;
 static char *debug_levels[] = {
-        "++++    ",
-        "PANIC   ",
-        "ALERT   ",
-        "ERROR   ",
-        "NOTICE  ",
-        "INFO    ",
-        "DEBUG   ",
-        "TRACE   ",
-        "-----   "
+        "++++  ",
+        "PANIC ",
+        "ALERT ",
+        "ERROR ",
+        "NOTICE",
+        "INFO  ",
+        "DEBUG ",
+        "TRACE ",
+        "----- "
         };
 
 int debug_init(configuration *config) {
@@ -69,11 +69,11 @@ int get_debug_level() {
 
 char *getTime() {
 	static char myDate[24]; /* YYYY/MM/DD-hh:mm:ss */
-	int res;
+	size_t res;
 	time_t t = time(NULL);
 	struct tm *myTime=localtime(&t);
 	/* res = strftime(myDate,24,"%Y/%m/%d-%H:%M:%S ",myTime); */
-	res = strftime(myDate,24,"%H:%M:%S ",myTime);
+	res = strftime(myDate,24,"%Y-%m-%d %H:%M:%S ",myTime);
 	myDate[res]='\0';
 	return myDate;
 }
